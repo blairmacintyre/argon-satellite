@@ -1,0 +1,15 @@
+{
+	"compilerOptions": {
+        "module": "amd",
+		"target": "ES5",
+		"noImplicitAny": false,
+		"preserveConstEnums":true,
+		"outDir": "build",
+		"sourceMap": true,
+		"watch": true
+	},
+	"files": [
+		"app.ts",
+		"loader.ts"
+	]
+}
