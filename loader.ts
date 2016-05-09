@@ -57,8 +57,8 @@ export function loadFiles(urls, callback, errorCallback) {
  * (where each entry is an array of two strings)
  * 
  * For example:  
- * var onLoad = function (tls) {
- *  	console.log("got a set of tle definitions);
+ * var onLoad = function (tle) {
+ *  	console.log("got a set of tle definitions");
  * }
  * var onProgress = function (progress: ProgressEvent) {
  *  	console.log("loading: " + progress.loaded + " of " + progress.total + "...");

@@ -8,12 +8,17 @@ const app = Argon.init();
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera();
+export const user = new THREE.Object3D();
+export const userLocation = new THREE.Object3D;
+scene.add(camera);
+scene.add(user);
+scene.add(userLocation);
 
 const cssRenderer = new THREE.CSS3DRenderer();
 const webglRenderer = new THREE.WebGLRenderer({ alpha: true, logarithmicDepthBuffer: true });
 
-app.viewport.element.appendChild(cssRenderer.domElement);
-app.viewport.element.appendChild(webglRenderer.domElement);
+app.view.element.appendChild(cssRenderer.domElement);
+app.view.element.appendChild(webglRenderer.domElement);
 
 // an entity for the satellite
 let issECEF = new Argon.Cesium.Entity({
@@ -28,10 +33,23 @@ let satrec = null;
 function onLoad (tle) {
     tleISS = tle["ISS (ZARYA)"];
     satrec = satellite.twoline2satrec(tleISS[0], tleISS[1]);
+    
+    // update the satellite positions a couple of times so
+    // we have enough data in the issECEF entity position property
+    // to interpolate
     let date = Argon.Cesium.JulianDate.now();
     updateSat(date);
     Argon.Cesium.JulianDate.addSeconds(date, 1, date);
     updateSat(date);
+    
+    // set up the orbit geometry and line object
+    initOrbit(date);
+   
+    const material = new THREE.LineBasicMaterial({
+	    color: 0x0000ff
+    });
+    const line = new THREE.Line( orbitXYZ, material );    
+    scene.add(line);
 }
 
 function onProgress (progress: ProgressEvent) {
@@ -42,18 +60,111 @@ function onError (error: ErrorEvent) {
     console.log("error! " + error);
 }
 
-loader.loadTLEs("http://celestrak.com/NORAD/elements/visual.txt", onLoad, onProgress, onError);
+// from http://celestrak.com/NORAD/elements/visual.txt
+loader.loadTLEs("includes/visual.txt", onLoad, onProgress, onError);
 
 const issPosition = new Argon.Cesium.SampledPositionProperty(
                             Argon.Cesium.ReferenceFrame.FIXED, 1);
 issPosition.forwardExtrapolationType = Argon.Cesium.ExtrapolationType.EXTRAPOLATE;
 issECEF.position = issPosition;
 
-// Initialize a satellite record
-let positionEcf = null;
-let velocityEcf = null;
-let positionGd = null;
-let lastSecond = -1;  // want it to always run once; (new Date()).getUTCSeconds();
+let lastMinute = -1;  // want it to always run once; (new Date()).getUTCSeconds();
+
+let orbitECF = undefined;
+let orbitXYZ = undefined;
+
+function initOrbit (julian) {
+    orbitECF = [];
+    orbitXYZ = new THREE.Geometry();
+    
+    // start some minutes ago
+    Argon.Cesium.JulianDate.addMinutes(julian, -15, julian);
+
+    var positionEcf;
+    var position;
+    var vec3;
+    var localPos;
+    const frame = app.context.getDefaultReferenceFrame();
+    for (var i = 0; i < 30; i++) {
+        positionEcf = computeSatPos(julian);
+        position = new Argon.Cesium.ConstantPositionProperty(
+            Argon.Cesium.Cartesian3.fromElements(positionEcf.x, positionEcf.y, positionEcf.z));
+        orbitECF.push(position);
+        localPos = position.getValueInReferenceFrame(julian, frame);
+        vec3 = new THREE.Vector3(localPos.x,localPos.y,localPos.z);
+        orbitXYZ.vertices.push(vec3);   
+        Argon.Cesium.JulianDate.addMinutes(julian, 1, julian);
+    }
+}
+
+function updateOrbit (julian) {
+    if (!satrec)
+        return;  // do nothing if we don't have the satellite definitions yet
+
+    if (orbitECF == undefined)
+        return;
+    
+    // remove the oldest location
+    orbitECF.shift();
+    orbitXYZ.vertices.shift();
+    
+    const frame = app.context.getDefaultReferenceFrame();
+    const positionEcf = computeSatPos(julian);
+    const position = new Argon.Cesium.ConstantPositionProperty(
+            Argon.Cesium.Cartesian3.fromElements(positionEcf.x, positionEcf.y, positionEcf.z));
+    orbitECF.push(position);
+    const localPos = position.getValueInReferenceFrame(julian, frame);
+    const vec3 = new THREE.Vector3(localPos.x,localPos.y,localPos.z);
+    orbitXYZ.vertices.push(vec3);   
+    orbitXYZ.verticesNeedUpdate = true;
+}
+
+function computeSatPos (julian) {            
+    //  Or you can use a calendar date and time (obtained from Javascript Date).
+    const now = Argon.Cesium.JulianDate.toDate(julian);
+
+    // NOTE: while Javascript Date returns months in range 0-11, 
+    // all satellite.js methods require months in range 1-12.
+    const positionAndVelocity = satellite.propagate(
+        satrec,
+        now.getUTCFullYear(),
+        now.getUTCMonth() + 1, // Note, this function requires months in range 1-12.
+        now.getUTCDate(),
+        now.getUTCHours(),
+        now.getUTCMinutes(),
+        now.getUTCSeconds()
+    );
+
+    // The position_velocity result is a key-value pair of ECI coordinates.
+    // These are the base results from which all other coordinates are derived.
+    let positionEci = positionAndVelocity.position;
+    let velocityEci = positionAndVelocity.velocity;
+
+    // You will need GMST for some of the coordinate transforms.
+    // http://en.wikipedia.org/wiki/Sidereal_time#Definition
+    // NOTE: GMST, though a measure of time, is defined as an angle in radians.
+    // Also, be aware that the month range is 1-12, not 0-11.
+    var gmst = satellite.gstimeFromDate(
+        now.getUTCFullYear(),
+        now.getUTCMonth() + 1, // Note, this function requires months in range 1-12.
+        now.getUTCDate(),
+        now.getUTCHours(),
+        now.getUTCMinutes(),
+        now.getUTCSeconds()
+    );
+
+    // You can get ECF, Geodetic, Look Angles, and Doppler Factor.
+    const positionEcf   = satellite.eciToEcf(positionEci, gmst);
+
+    // The coordinates are all stored in key-value pairs.
+    // ECI and ECF are accessed by `x`, `y`, `z` properties.
+    // They are in kilometers, so we need to convert to meters for Cesium
+    positionEcf.x *= 1000.0;
+    positionEcf.y *= 1000.0;
+    positionEcf.z *= 1000.0;
+    
+    return positionEcf;
+}
 
 function updateSat (julian) {
     if (!satrec)
@@ -93,9 +204,9 @@ function updateSat (julian) {
     );
 
     // You can get ECF, Geodetic, Look Angles, and Doppler Factor.
-    positionEcf   = satellite.eciToEcf(positionEci, gmst);
-    velocityEcf   = satellite.eciToEcf(velocityEci, gmst);
-    positionGd    = satellite.eciToGeodetic(positionEci, gmst);
+    const positionEcf   = satellite.eciToEcf(positionEci, gmst);
+    const velocityEcf   = satellite.eciToEcf(velocityEci, gmst);
+    // const positionGd    = satellite.eciToGeodetic(positionEci, gmst);
 
     // The coordinates are all stored in key-value pairs.
     // ECI and ECF are accessed by `x`, `y`, `z` properties.
@@ -122,44 +233,44 @@ function toFixed(value, precision) {
     return String(Math.round(value * power) / power);
 }
 
+// Create a buffer of points based on time in the past/future.  Add/remove a point
+// each minute (say).  Draw a line based on these points.
+ 
 // set the local origin to EUS so that 
 // +X is east, +Y is up, and +Z is south 
 // (this is just an example, use whatever origin you prefer)
 app.context.setDefaultReferenceFrame(app.context.localOriginEastUpSouth);
 
 app.updateEvent.addEventListener((state) => {
-    const currSecond = (Argon.Cesium.JulianDate.toDate(state.time)).getUTCMinutes();
-    if (currSecond !== lastSecond) {
-        lastSecond = currSecond;
-        updateSat(state.time);
+    const time = app.context.getTime();
+    const currMinute = (Argon.Cesium.JulianDate.toDate(time)).getUTCMinutes();
+    if (currMinute !== lastMinute) {
+        lastMinute = currMinute;
+        updateSat(time);
+        //updateOrbit(time);
     }
-
-    const frustum = app.camera.currentFrustum;
-    camera.fov = Argon.Cesium.CesiumMath.toDegrees(frustum.fovy);
-    camera.aspect = frustum.aspectRatio;
-    camera.projectionMatrix.fromArray(frustum.infiniteProjectionMatrix);
 
     // We can optionally provide a second argument to getCurrentEntityState
     // with a desired reference frame. Otherwise, the implementation uses
     // the default origin as the reference frame. 
-    const eyeState = app.context.getCurrentEntityState(app.context.eye);
+    const userPose = app.context.getEntityPose(app.context.user);
 
-    if (eyeState.poseStatus | Argon.PoseStatus.KNOWN) {
-        camera.position.copy(eyeState.position);
-        camera.quaternion.copy(eyeState.orientation);
-        eyeOrigin.position.copy(eyeState.position);
+    if (userPose.poseStatus & Argon.PoseStatus.KNOWN) {
+        user.position.copy(userPose.position);
+        user.quaternion.copy(userPose.orientation);
+        userLocation.position.copy(userPose.position);
     }
 
-    const issECEFState = app.context.getCurrentEntityState(issECEF);
+    const issECEFState = app.context.getEntityPose(issECEF);
     if (issECEFState.poseStatus) {
         const relPos = Argon.Cesium.Cartesian3.subtract(issECEFState.position,
-                                                        eyeState.position,
+                                                        userPose.position,
                                                         new Argon.Cesium.Cartesian3());
         const magnitude = Argon.Cesium.Cartesian3.magnitude(relPos);
 
         // make it 1 km away in the same direction
         Argon.Cesium.Cartesian3.multiplyByScalar(relPos, 1000.0 / magnitude, relPos);
-        Argon.Cesium.Cartesian3.add(relPos, eyeState.position, relPos);
+        Argon.Cesium.Cartesian3.add(relPos, userPose.position, relPos);
         issObject.position.copy(relPos);
     }
     let elem = document.getElementById('location');
@@ -169,7 +280,7 @@ app.updateEvent.addEventListener((state) => {
         let longitude = 0;
         let height = 0;
 
-        const issECEFStateFIXED = app.context.getCurrentEntityState(issECEF,
+        const issECEFStateFIXED = app.context.getEntityPose(issECEF,
                 Argon.Cesium.ReferenceFrame.FIXED);
         if (issECEFStateFIXED.poseStatus) {
             const pos = Argon.Cesium.Ellipsoid.WGS84.cartesianToCartographic(issECEFStateFIXED.position);
@@ -190,11 +301,29 @@ app.updateEvent.addEventListener((state) => {
 });
 
 app.renderEvent.addEventListener(() => {
-    const {width, height} = app.viewport.current;
-    cssRenderer.setSize(width, height);
-    webglRenderer.setSize(width, height);
-    cssRenderer.render(scene, camera);
-    webglRenderer.render(scene, camera);
+    const viewport = app.view.getViewport();    
+
+    webglRenderer.setSize(viewport.width, viewport.height);    
+    cssRenderer.setSize(viewport.width, viewport.height);
+    for (let subview of app.view.getSubviews()) {
+        camera.position.copy(subview.pose.position);
+        camera.quaternion.copy(subview.pose.orientation);
+        camera.projectionMatrix.fromArray(subview.projectionMatrix);
+        const {x,y,width,height} = subview.viewport;
+        webglRenderer.setViewport(x,y,width,height);
+        webglRenderer.setScissor(x,y,width,height);
+        webglRenderer.setScissorTest(true);
+        webglRenderer.render(scene, camera);
+        
+        // only render the css content if we are in one view
+        if (subview.type == Argon.SubviewType.SINGULAR) {
+            //cssRenderer.setViewport(x,y,width,height);
+            cssRenderer.render(scene, camera);
+            cssRenderer.domElement.style.display = "block";
+        } else {
+            cssRenderer.domElement.style.display = "none";
+        }
+    }
 });
 
 // ISS object
@@ -205,20 +334,27 @@ scene.add(issObject);
 // the geospatial object for the ISS 
 // Box texture from https://www.flickr.com/photos/photoshoproadmap/8640003215/sizes/l/in/photostream/
 //, licensed under https://creativecommons.org/licenses/by/2.0/legalcode
+//
+// ISS texture from 
+// http://765.blogspot.com/2014/07/what-does-international-space-station.html
 
-const box = new THREE.Object3D;
+
+// REPLACE THE BOX with Three.Sprite
+// http://threejs.org/docs/#Reference/Objects/Sprite
+//
+// Draw a path for the past/future trajectory, using Three.Line
+// http://threejs.org/docs/#Reference/Objects/Line
+
+const satObj = new THREE.Object3D;
 const texloader = new THREE.TextureLoader()
-texloader.load( 'includes/box.png', function ( texture ) {
-    const geometry = new THREE.BoxGeometry(50, 50, 50);
-    const material = new THREE.MeshBasicMaterial( { map: texture } );
-    const mesh = new THREE.Mesh( geometry, material );
-    box.add( mesh );
+texloader.load( 'includes/ISS-2011.png', function ( texture ) {
+    const material = new THREE.SpriteMaterial( { map: texture, color: 0xffffff, fog: false } );
+    const sprite = new THREE.Sprite( material );
+	sprite.scale.copy(new THREE.Vector3( 100, 100, 100 ));
+    satObj.add( sprite );
 });
-issObject.add(box);
+issObject.add(satObj);
 scene.add(issObject);
-
-const eyeOrigin = new THREE.Object3D;
-scene.add(eyeOrigin);
 
 // creating 6 divs to indicate the x y z positioning
 const divXpos = document.createElement('div')
@@ -303,9 +439,9 @@ cssObjectZpos.rotation.y = Math.PI
 cssObjectZneg.position.z = -200.0
 //no rotation need for this one
 
-eyeOrigin.add(cssObjectXpos)
-eyeOrigin.add(cssObjectXneg)
-eyeOrigin.add(cssObjectYpos)
-eyeOrigin.add(cssObjectYneg)
-eyeOrigin.add(cssObjectZpos)
-eyeOrigin.add(cssObjectZneg)
+userLocation.add(cssObjectXpos)
+userLocation.add(cssObjectXneg)
+userLocation.add(cssObjectYpos)
+userLocation.add(cssObjectYneg)
+userLocation.add(cssObjectZpos)
+userLocation.add(cssObjectZneg)
