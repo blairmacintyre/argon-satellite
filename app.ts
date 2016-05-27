@@ -300,16 +300,97 @@ app.updateEvent.addEventListener((state) => {
     }
 });
 
+// code to compute the FOV we need to render the CSS properly
+//
+var oldProjection = null;
+var oldFOV = 0;
+function projectionEquals(projection: number[]) {
+    if (!oldProjection) {
+        oldProjection = projection.slice(0); // shallow copy
+        return false;
+    } else {
+        const epsilon = 0.001;
+        var equals = (Math.abs(oldProjection[0] - projection[0]) <= epsilon &&
+                Math.abs(oldProjection[1] - projection[1]) <= epsilon &&
+                Math.abs(oldProjection[2] - projection[2]) <= epsilon &&
+                Math.abs(oldProjection[3] - projection[3]) <= epsilon &&
+                Math.abs(oldProjection[4] - projection[4]) <= epsilon &&
+                Math.abs(oldProjection[5] - projection[5]) <= epsilon &&
+                Math.abs(oldProjection[6] - projection[6]) <= epsilon &&
+                Math.abs(oldProjection[7] - projection[7]) <= epsilon &&
+                Math.abs(oldProjection[8] - projection[8]) <= epsilon &&
+                Math.abs(oldProjection[9] - projection[9]) <= epsilon &&
+                Math.abs(oldProjection[10] - projection[10]) <= epsilon &&
+                Math.abs(oldProjection[11] - projection[11]) <= epsilon &&
+                Math.abs(oldProjection[12] - projection[12]) <= epsilon &&
+                Math.abs(oldProjection[13] - projection[13]) <= epsilon &&
+                Math.abs(oldProjection[14] - projection[14]) <= epsilon &&
+                Math.abs(oldProjection[15] - projection[15]) <= epsilon);
+         if (!equals) {
+            oldProjection = projection.slice(0); // shallow copy
+         }
+         return equals;
+    }
+}
+
+function applyProjection(x, y, e ) {
+		var z = 0.5; // any depth will do, just use the middle of the canonical depth space
+		var d = 1 / ( e[ 3 ] * x + e[ 7 ] * y + e[ 11 ] * z + e[ 15 ] ); // perspective divide
+
+		var nx = ( e[ 0 ] * x + e[ 4 ] * y + e[ 8 ]  * z + e[ 12 ] ) * d;
+		var ny = ( e[ 1 ] * x + e[ 5 ] * y + e[ 9 ]  * z + e[ 13 ] ) * d;
+		var nz = ( e[ 2 ] * x + e[ 6 ] * y + e[ 10 ] * z + e[ 14 ] ) * d;
+
+		var len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+        return [nx/len, ny/len, nz/len];
+}
+
+function angleBetween (v1, v2) {
+    var dot = v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
+    // assuming normalized, don't need: / ( Math.sqrt( this.lengthSq() * v.lengthSq() ) );
+
+    // clamp, to handle numerical problems
+	var theta = Math.max( -1, Math.min( 1, dot ) );
+	return Math.acos( theta );
+} 
+        
+function getFOV(projection: number[]) {
+    if (!projectionEquals(projection)) {
+         if (!projection || projection == undefined || projection.length < 16) {
+           console.log("called getFOV with bad projection");
+           oldFOV += 0.001;  // slight change to trigger change things below
+           return oldFOV;
+         }    
+         console.log("get FOV: projection={" + projection[0] + ", " + projection[1]+", ...}")
+         var proj = Argon.Cesium.Matrix4.fromColumnMajorArray(projection);
+         var projInv = Argon.Cesium.Matrix4.inverse(proj, Argon.Cesium.Matrix4.IDENTITY.clone());
+
+         var v1 = applyProjection(0,1,projInv);
+         console.log("get FOV: v1={" + v1[0] + ", " + v1[1]+", " + v1[2] +"}")
+         var v2 = applyProjection(0,-1,projInv);
+         console.log("get FOV: v2={" + v2[0] + ", " + v2[1]+", " + v2[2] +"}")
+		 oldFOV = angleBetween(v1,v2) * 180 / Math.PI;
+         console.log("get FOV: " + oldFOV);
+    }
+    return oldFOV;
+}
+
 app.renderEvent.addEventListener(() => {
     const viewport = app.view.getViewport();    
 
     webglRenderer.setSize(viewport.width, viewport.height);    
     cssRenderer.setSize(viewport.width, viewport.height);
     for (let subview of app.view.getSubviews()) {
+        const {x,y,width,height} = subview.viewport;
+        var fov = getFOV(subview.projectionMatrix);
+        if (camera.fov != fov) {
+            console.log("viewport: " + viewport.width + "x" + viewport.height);
+            console.log("subview: " + x + "x" + y + " " + width + "x" + height);
+            camera.fov = fov;  // update this because CSS renderer needs it
+        }    
         camera.position.copy(subview.pose.position);
         camera.quaternion.copy(subview.pose.orientation);
         camera.projectionMatrix.fromArray(subview.projectionMatrix);
-        const {x,y,width,height} = subview.viewport;
         webglRenderer.setViewport(x,y,width,height);
         webglRenderer.setScissor(x,y,width,height);
         webglRenderer.setScissorTest(true);
