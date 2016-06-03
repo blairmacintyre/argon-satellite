@@ -5,17 +5,18 @@
 
     <title>Satellites</title>
     <script src="js/three.min.js"></script>
-    <script src="js/CSS3DRenderer.js"></script>
+    <script src="js/CSS3DStereoRenderer.js"></script>
     <script src="js/argon.umd.js"></script>
 	<script src="js/satellite.min.js"></script>
 	<link rel="stylesheet" type="text/css" href="includes/style.css">	
 </head>
 <body>
 	<div id="argon">
- 	  <div id="menu">
-  			<button id="location">lon (0) lat (0)</button>
-      </div>
+ 	  <div id="menu" class="menu">
+  		<button class="location">lon (0) lat (0)</button>
     </div>
+  </div>
+  <button id="iss-height" class="location">ISS HEIGHT</button>
 </body>
 <script data-main="build/app" type="text/javascript" src="js/require.js"></script>
 </html>
