@@ -1,6 +1,6 @@
-!function(e){function r(e,r,o){return 4===arguments.length?t.apply(this,arguments):void n(e,{declarative:!0,deps:r,declare:o})}function t(e,r,t,o){n(e,{declarative:!1,deps:r,executingRequire:t,execute:o})}function n(e,r){r.name=e,e in g||(g[e]=r),r.normalizedDeps=r.deps}function o(e,r){if(r[e.groupIndex]=r[e.groupIndex]||[],-1==m.call(r[e.groupIndex],e)){r[e.groupIndex].push(e);for(var t=0,n=e.normalizedDeps.length;n>t;t++){var a=e.normalizedDeps[t],u=g[a];if(u&&!u.evaluated){var d=e.groupIndex+(u.declarative!=e.declarative);if(void 0===u.groupIndex||u.groupIndex<d){if(void 0!==u.groupIndex&&(r[u.groupIndex].splice(m.call(r[u.groupIndex],u),1),0==r[u.groupIndex].length))throw new TypeError("Mixed dependency cycle detected");u.groupIndex=d}o(u,r)}}}}function a(e){var r=g[e];r.groupIndex=0;var t=[];o(r,t);for(var n=!!r.declarative==t.length%2,a=t.length-1;a>=0;a--){for(var u=t[a],i=0;i<u.length;i++){var s=u[i];n?d(s):l(s)}n=!n}}function u(e){return D[e]||(D[e]={name:e,dependencies:[],exports:{},importers:[]})}function d(r){if(!r.module){var t=r.module=u(r.name),n=r.module.exports,o=r.declare.call(e,function(e,r){if(t.locked=!0,"object"==typeof e)for(var o in e)n[o]=e[o];else n[e]=r;for(var a=0,u=t.importers.length;u>a;a++){var d=t.importers[a];if(!d.locked)for(var i=0;i<d.dependencies.length;++i)d.dependencies[i]===t&&d.setters[i](n)}return t.locked=!1,r},r.name);t.setters=o.setters,t.execute=o.execute;for(var a=0,i=r.normalizedDeps.length;i>a;a++){var l,s=r.normalizedDeps[a],c=g[s],f=D[s];f?l=f.exports:c&&!c.declarative?l=c.esModule:c?(d(c),f=c.module,l=f.exports):l=v(s),f&&f.importers?(f.importers.push(t),t.dependencies.push(f)):t.dependencies.push(null),t.setters[a]&&t.setters[a](l)}}}function i(e){var r,t=g[e];if(t)t.declarative?p(e,[]):t.evaluated||l(t),r=t.module.exports;else if(r=v(e),!r)throw new Error("Unable to load dependency "+e+".");return(!t||t.declarative)&&r&&r.__useDefault?r["default"]:r}function l(r){if(!r.module){var t={},n=r.module={exports:t,id:r.name};if(!r.executingRequire)for(var o=0,a=r.normalizedDeps.length;a>o;o++){var u=r.normalizedDeps[o],d=g[u];d&&l(d)}r.evaluated=!0;var c=r.execute.call(e,function(e){for(var t=0,n=r.deps.length;n>t;t++)if(r.deps[t]==e)return i(r.normalizedDeps[t]);throw new TypeError("Module "+e+" not declared as a dependency.")},t,n);c&&(n.exports=c),t=n.exports,t&&t.__esModule?r.esModule=t:r.esModule=s(t)}}function s(e){var r={};if("object"==typeof e||"function"==typeof e){var t=e&&e.hasOwnProperty;if(h)for(var n in e)f(r,e,n)||c(r,e,n,t);else for(var n in e)c(r,e,n,t)}return r["default"]=e,y(r,"__useDefault",{value:!0}),r}function c(e,r,t,n){(!n||r.hasOwnProperty(t))&&(e[t]=r[t])}function f(e,r,t){try{var n;return(n=Object.getOwnPropertyDescriptor(r,t))&&y(e,t,n),!0}catch(o){return!1}}function p(r,t){var n=g[r];if(n&&!n.evaluated&&n.declarative){t.push(r);for(var o=0,a=n.normalizedDeps.length;a>o;o++){var u=n.normalizedDeps[o];-1==m.call(t,u)&&(g[u]?p(u,t):v(u))}n.evaluated||(n.evaluated=!0,n.module.execute.call(e))}}function v(e){if(I[e])return I[e];if("@node/"==e.substr(0,6))return _(e.substr(6));var r=g[e];if(!r)throw"Module "+e+" not present.";return a(e),p(e,[]),g[e]=void 0,r.declarative&&y(r.module.exports,"__esModule",{value:!0}),I[e]=r.declarative?r.module.exports:r.esModule}var g={},m=Array.prototype.indexOf||function(e){for(var r=0,t=this.length;t>r;r++)if(this[r]===e)return r;return-1},h=!0;try{Object.getOwnPropertyDescriptor({a:0},"a")}catch(x){h=!1}var y;!function(){try{Object.defineProperty({},"a",{})&&(y=Object.defineProperty)}catch(e){y=function(e,r,t){try{e[r]=t.value||t.get.call(e)}catch(n){}}}}();var D={},_="undefined"!=typeof System&&System._nodeRequire||"undefined"!=typeof require&&require.resolve&&"undefined"!=typeof process&&require,I={"@empty":{}};return function(e,n,o){return function(a){a(function(a){for(var u={_nodeRequire:_,register:r,registerDynamic:t,get:v,set:function(e,r){I[e]=r},newModule:function(e){return e}},d=0;d<n.length;d++)(function(e,r){r&&r.__esModule?I[e]=r:I[e]=s(r)})(n[d],arguments[d]);o(u);var i=v(e[0]);if(e.length>1)for(var d=1;d<e.length;d++)v(e[d]);return i.__useDefault?i["default"]:i})}}}("undefined"!=typeof self?self:global)
+!function(e){function r(e,r,o){return 4===arguments.length?t.apply(this,arguments):void n(e,{declarative:!0,deps:r,declare:o})}function t(e,r,t,o){n(e,{declarative:!1,deps:r,executingRequire:t,execute:o})}function n(e,r){r.name=e,e in v||(v[e]=r),r.normalizedDeps=r.deps}function o(e,r){if(r[e.groupIndex]=r[e.groupIndex]||[],-1==g.call(r[e.groupIndex],e)){r[e.groupIndex].push(e);for(var t=0,n=e.normalizedDeps.length;n>t;t++){var a=e.normalizedDeps[t],u=v[a];if(u&&!u.evaluated){var d=e.groupIndex+(u.declarative!=e.declarative);if(void 0===u.groupIndex||u.groupIndex<d){if(void 0!==u.groupIndex&&(r[u.groupIndex].splice(g.call(r[u.groupIndex],u),1),0==r[u.groupIndex].length))throw new TypeError("Mixed dependency cycle detected");u.groupIndex=d}o(u,r)}}}}function a(e){var r=v[e];r.groupIndex=0;var t=[];o(r,t);for(var n=!!r.declarative==t.length%2,a=t.length-1;a>=0;a--){for(var u=t[a],i=0;i<u.length;i++){var s=u[i];n?d(s):l(s)}n=!n}}function u(e){return y[e]||(y[e]={name:e,dependencies:[],exports:{},importers:[]})}function d(r){if(!r.module){var t=r.module=u(r.name),n=r.module.exports,o=r.declare.call(e,function(e,r){if(t.locked=!0,"object"==typeof e)for(var o in e)n[o]=e[o];else n[e]=r;for(var a=0,u=t.importers.length;u>a;a++){var d=t.importers[a];if(!d.locked)for(var i=0;i<d.dependencies.length;++i)d.dependencies[i]===t&&d.setters[i](n)}return t.locked=!1,r},r.name);t.setters=o.setters,t.execute=o.execute;for(var a=0,i=r.normalizedDeps.length;i>a;a++){var l,s=r.normalizedDeps[a],c=v[s],f=y[s];f?l=f.exports:c&&!c.declarative?l=c.esModule:c?(d(c),f=c.module,l=f.exports):l=p(s),f&&f.importers?(f.importers.push(t),t.dependencies.push(f)):t.dependencies.push(null),t.setters[a]&&t.setters[a](l)}}}function i(e){var r,t=v[e];if(t)t.declarative?f(e,[]):t.evaluated||l(t),r=t.module.exports;else if(r=p(e),!r)throw new Error("Unable to load dependency "+e+".");return(!t||t.declarative)&&r&&r.__useDefault?r["default"]:r}function l(r){if(!r.module){var t={},n=r.module={exports:t,id:r.name};if(!r.executingRequire)for(var o=0,a=r.normalizedDeps.length;a>o;o++){var u=r.normalizedDeps[o],d=v[u];d&&l(d)}r.evaluated=!0;var c=r.execute.call(e,function(e){for(var t=0,n=r.deps.length;n>t;t++)if(r.deps[t]==e)return i(r.normalizedDeps[t]);throw new TypeError("Module "+e+" not declared as a dependency.")},t,n);c&&(n.exports=c),t=n.exports,t&&t.__esModule?r.esModule=t:r.esModule=s(t)}}function s(r){var t={};if(("object"==typeof r||"function"==typeof r)&&r!==e)if(m)for(var n in r)"default"!==n&&c(t,r,n);else{var o=r&&r.hasOwnProperty;for(var n in r)"default"===n||o&&!r.hasOwnProperty(n)||(t[n]=r[n])}return t["default"]=r,x(t,"__useDefault",{value:!0}),t}function c(e,r,t){try{var n;(n=Object.getOwnPropertyDescriptor(r,t))&&x(e,t,n)}catch(o){return e[t]=r[t],!1}}function f(r,t){var n=v[r];if(n&&!n.evaluated&&n.declarative){t.push(r);for(var o=0,a=n.normalizedDeps.length;a>o;o++){var u=n.normalizedDeps[o];-1==g.call(t,u)&&(v[u]?f(u,t):p(u))}n.evaluated||(n.evaluated=!0,n.module.execute.call(e))}}function p(e){if(I[e])return I[e];if("@node/"==e.substr(0,6))return D(e.substr(6));var r=v[e];if(!r)throw"Module "+e+" not present.";return a(e),f(e,[]),v[e]=void 0,r.declarative&&x(r.module.exports,"__esModule",{value:!0}),I[e]=r.declarative?r.module.exports:r.esModule}var v={},g=Array.prototype.indexOf||function(e){for(var r=0,t=this.length;t>r;r++)if(this[r]===e)return r;return-1},m=!0;try{Object.getOwnPropertyDescriptor({a:0},"a")}catch(h){m=!1}var x;!function(){try{Object.defineProperty({},"a",{})&&(x=Object.defineProperty)}catch(e){x=function(e,r,t){try{e[r]=t.value||t.get.call(e)}catch(n){}}}}();var y={},D="undefined"!=typeof System&&System._nodeRequire||"undefined"!=typeof require&&require.resolve&&"undefined"!=typeof process&&require,I={"@empty":{}};return function(e,n,o,a){return function(u){u(function(u){for(var d={_nodeRequire:D,register:r,registerDynamic:t,get:p,set:function(e,r){I[e]=r},newModule:function(e){return e}},i=0;i<n.length;i++)(function(e,r){r&&r.__esModule?I[e]=r:I[e]=s(r)})(n[i],arguments[i]);a(d);var l=p(e[0]);if(e.length>1)for(var i=1;i<e.length;i++)p(e[i]);return o?l["default"]:l})}}}("undefined"!=typeof self?self:global)
 
-(["1"], [], function($__System) {
+(["1"], [], false, function($__System) {
 var require = this.require, exports = this.exports, module = this.module;
 !function(e){function n(e,n){e=e.replace(l,"");var r=e.match(u),t=(r[1].split(",")[n]||"require").replace(s,""),i=p[t]||(p[t]=new RegExp(a+t+f,"g"));i.lastIndex=0;for(var o,c=[];o=i.exec(e);)c.push(o[2]||o[3]);return c}function r(e,n,t,o){if("object"==typeof e&&!(e instanceof Array))return r.apply(null,Array.prototype.splice.call(arguments,1,arguments.length-1));if("string"==typeof e&&"function"==typeof n&&(e=[e]),!(e instanceof Array)){if("string"==typeof e){var l=i.get(e);return l.__useDefault?l["default"]:l}throw new TypeError("Invalid require")}for(var a=[],f=0;f<e.length;f++)a.push(i["import"](e[f],o));Promise.all(a).then(function(e){n&&n.apply(null,e)},t)}function t(t,l,a){"string"!=typeof t&&(a=l,l=t,t=null),l instanceof Array||(a=l,l=["require","exports","module"].splice(0,a.length)),"function"!=typeof a&&(a=function(e){return function(){return e}}(a)),void 0===l[l.length-1]&&l.pop();var f,u,s;-1!=(f=o.call(l,"require"))&&(l.splice(f,1),t||(l=l.concat(n(a.toString(),f)))),-1!=(u=o.call(l,"exports"))&&l.splice(u,1),-1!=(s=o.call(l,"module"))&&l.splice(s,1);var p={name:t,deps:l,execute:function(n,t,o){for(var p=[],c=0;c<l.length;c++)p.push(n(l[c]));o.uri=o.id,o.config=function(){},-1!=s&&p.splice(s,0,o),-1!=u&&p.splice(u,0,t),-1!=f&&p.splice(f,0,function(e,t,l){return"string"==typeof e&&"function"!=typeof t?n(e):r.call(i,e,t,l,o.id)});var d=a.apply(-1==u?e:t,p);return"undefined"==typeof d&&o&&(d=o.exports),"undefined"!=typeof d?d:void 0}};if(t)c.anonDefine||c.isBundle?c.anonDefine&&c.anonDefine.name&&(c.anonDefine=null):c.anonDefine=p,c.isBundle=!0,i.registerDynamic(p.name,p.deps,!1,p.execute);else{if(c.anonDefine&&!c.anonDefine.name)throw new Error("Multiple anonymous defines in module "+t);c.anonDefine=p}}var i=$__System,o=Array.prototype.indexOf||function(e){for(var n=0,r=this.length;r>n;n++)if(this[n]===e)return n;return-1},l=/(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/gm,a="(?:^|[^$_a-zA-Z\\xA0-\\uFFFF.])",f="\\s*\\(\\s*(\"([^\"]+)\"|'([^']+)')\\s*\\)",u=/\(([^\)]*)\)/,s=/^\s+|\s+$/g,p={};t.amd={};var c={isBundle:!1,anonDefine:null};i.amdDefine=t,i.amdRequire=r}("undefined"!=typeof self?self:global);
 (function() {
@@ -395,6 +395,7 @@ $__System.register("4", ["b", "5", "6", "7", "8", "9", "a"], function(exports_1,
       scratchCartesian3,
       scratchQuaternion,
       scratchOriginCartesian3,
+      negX90,
       ContextService;
   function _stringFromReferenceFrame(referenceFrame) {
     var rf = referenceFrame;
@@ -427,6 +428,7 @@ $__System.register("4", ["b", "5", "6", "7", "8", "9", "a"], function(exports_1,
       scratchCartesian3 = new cesium_imports_1.Cartesian3(0, 0);
       scratchQuaternion = new cesium_imports_1.Quaternion(0, 0);
       scratchOriginCartesian3 = new cesium_imports_1.Cartesian3(0, 0);
+      negX90 = cesium_imports_1.Quaternion.fromAxisAngle(cesium_imports_1.Cartesian3.UNIT_X, -cesium_imports_1.CesiumMath.PI_OVER_TWO);
       ContextService = (function() {
         function ContextService(sessionService, realityService, timerService) {
           var _this = this;
@@ -462,17 +464,8 @@ $__System.register("4", ["b", "5", "6", "7", "8", "9", "a"], function(exports_1,
           this._subscribedEntities = new WeakMap();
           this._updatingEntities = new Set();
           this._knownEntities = new Set();
-          this._didUpdateState = false;
-          this._onTick = function() {
-            if (!_this._didUpdateState)
-              return;
-            cesium_imports_1.JulianDate.clone(_this._state.time, _this._time);
-            _this.updateEvent.raiseEvent(undefined);
-            _this.renderEvent.raiseEvent(undefined);
-            _this._didUpdateState = false;
-          };
           this.entities.add(this.user);
-          if (this.sessionService.isManager()) {
+          if (this.sessionService.isManager) {
             this.realityService.frameEvent.addEventListener(function(state) {
               _this._update({
                 reality: _this.realityService.getCurrent(),
@@ -483,19 +476,19 @@ $__System.register("4", ["b", "5", "6", "7", "8", "9", "a"], function(exports_1,
                 sendTime: cesium_imports_1.JulianDate.now()
               });
             });
+            this.sessionService.connectEvent.addEventListener(function(session) {
+              _this._subscribedEntities.set(session, new Set());
+              session.on['ar.context.subscribe'] = function(_a) {
+                var id = _a.id;
+                var subscriptions = _this._subscribedEntities.get(session);
+                subscriptions.add(id);
+              };
+            });
           } else {
             this.sessionService.manager.on['ar.context.update'] = function(state) {
               _this._update(state);
             };
           }
-          this.sessionService.connectEvent.addEventListener(function(session) {
-            _this._subscribedEntities.set(session, new Set());
-            session.on['ar.context.subscribe'] = function(_a) {
-              var id = _a.id;
-              var subscriptions = _this._subscribedEntities.get(session);
-              subscriptions.add(id);
-            };
-          });
         }
         Object.defineProperty(ContextService.prototype, "time", {
           get: function() {
@@ -585,7 +578,7 @@ $__System.register("4", ["b", "5", "6", "7", "8", "9", "a"], function(exports_1,
             }
           });
           this._updateLocalOrigin(state);
-          if (this.sessionService.isManager()) {
+          if (this.sessionService.isManager) {
             this._entityPoseCache = {};
             for (var _i = 0,
                 _a = this.sessionService.managedSessions; _i < _a.length; _i++) {
@@ -595,8 +588,9 @@ $__System.register("4", ["b", "5", "6", "7", "8", "9", "a"], function(exports_1,
             }
           }
           this._state = state;
-          this._didUpdateState = true;
-          this.timerService.requestFrame(this._onTick);
+          cesium_imports_1.JulianDate.clone(this._state.time, this._time);
+          this.updateEvent.raiseEvent(undefined);
+          this.renderEvent.raiseEvent(undefined);
         };
         ContextService.prototype._updateEntity = function(id, state) {
           var entityPose = state.entities[id];
@@ -615,7 +609,8 @@ $__System.register("4", ["b", "5", "6", "7", "8", "9", "a"], function(exports_1,
             referenceFrame = cesium_imports_1.ReferenceFrame.FIXED;
           }
           if (!cesium_imports_1.defined(referenceFrame)) {
-            referenceFrame = this._updateEntity(entityPose.r, state);
+            this._updateEntity(entityPose.r, state);
+            referenceFrame = this.entities.getById(entityPose.r);
           }
           var positionValue = (entityPose.p === 0 ? cesium_imports_1.Cartesian3.ZERO : entityPose.p);
           var orientationValue = entityPose.o === 0 ? cesium_imports_1.Quaternion.IDENTITY : entityPose.o;
@@ -661,7 +656,7 @@ $__System.register("4", ["b", "5", "6", "7", "8", "9", "a"], function(exports_1,
               var enuOrientation = cesium_imports_1.Transforms.headingPitchRollQuaternion(userPosition, 0, 0, 0, undefined, scratchQuaternion);
               localENUOrientationProperty.setValue(enuOrientation);
             } else {
-              localENUOrientationProperty.setValue(cesium_imports_1.Quaternion.IDENTITY);
+              localENUOrientationProperty.setValue(negX90);
             }
             this.localOriginChangeEvent.raiseEvent(undefined);
           }
@@ -774,7 +769,7 @@ $__System.register("c", ["b", "7", "4", "a"], function(exports_1, context_1) {
             sheet.insertRule("\n                #argon {\n                    position: fixed;\n                    transform: translateZ(0px);\n                    z-index: -9999;\n                    left: 0px;\n                    bottom: 0px;\n                    width: 100%;\n                    height: 100%;\n                    margin: 0;\n                    border: 0;\n                    padding: 0;\n                }\n            ", 0);
             sheet.insertRule("\n                #argon > * {\n                    position: absolute;\n                    transform: translateZ(0px);\n                    left: 0px;\n                    bottom: 0px;\n                }\n            ", 1);
           }
-          if (this.sessionService.isManager()) {
+          if (this.sessionService.isManager) {
             this.sessionService.connectEvent.addEventListener(function(session) {
               session.on['ar.viewport.desired'] = function(viewport) {
                 _this.desiredViewportMap.set(session, viewport);
@@ -923,7 +918,7 @@ $__System.register("d", ["b", "7", "a"], function(exports_1, context_1) {
           sessionService.manager.on['ar.focus.state'] = function(message) {
             _this._setFocus(message.state);
           };
-          if (sessionService.isManager()) {
+          if (sessionService.isManager) {
             setTimeout(function() {
               if (!_this._session)
                 _this.setSession(_this.sessionService.manager);
@@ -1057,9 +1052,9 @@ $__System.register("8", ["b", "5", "9", "6", "d", "7", "e", "a"], function(expor
       session_1,
       device_1,
       utils_1;
-  var RealitySetupHandler,
+  var RealityLoader,
       RealityService,
-      EmptyRealitySetupHandler;
+      EmptyRealityLoader;
   return {
     setters: [function(aurelia_dependency_injection_1_1) {
       aurelia_dependency_injection_1 = aurelia_dependency_injection_1_1;
@@ -1079,11 +1074,11 @@ $__System.register("8", ["b", "5", "9", "6", "d", "7", "e", "a"], function(expor
       utils_1 = utils_1_1;
     }],
     execute: function() {
-      RealitySetupHandler = (function() {
-        function RealitySetupHandler() {}
-        return RealitySetupHandler;
+      RealityLoader = (function() {
+        function RealityLoader() {}
+        return RealityLoader;
       }());
-      exports_1("RealitySetupHandler", RealitySetupHandler);
+      exports_1("RealityLoader", RealityLoader);
       RealityService = (function() {
         function RealityService(sessionService, focusService) {
           var _this = this;
@@ -1094,52 +1089,58 @@ $__System.register("8", ["b", "5", "9", "6", "d", "7", "e", "a"], function(expor
           this.frameEvent = new utils_1.Event();
           this.desiredRealityMap = new WeakMap();
           this.desiredRealityMapInverse = new WeakMap();
+          this.sessionDesiredRealityChangeEvent = new utils_1.Event();
           this._default = null;
           this._current = null;
           this._desired = null;
-          this._handlers = [];
-          if (sessionService.isManager()) {
-            sessionService.connectEvent.addEventListener(function(session) {
-              session.closeEvent.addEventListener(function() {
-                if (_this._realitySession === session) {
-                  _this._realitySession = null;
-                }
-              });
-              session.on['ar.reality.desired'] = function(message, event) {
-                var reality = message.reality;
-                console.log('Session set desired reality: ' + JSON.stringify(reality));
-                if (reality) {
-                  if (_this.isSupported(reality.type)) {
-                    _this.desiredRealityMap.set(session, reality);
-                    _this.desiredRealityMapInverse.set(reality, session);
-                  } else {
-                    session.sendError({message: 'reality type "' + reality.type + '" is not suppored on this platform'});
-                  }
-                } else {
-                  _this.desiredRealityMap.delete(session);
-                }
-                _this._setNextReality(_this.onSelectReality());
-              };
-              session.on['ar.reality.message'] = function(message) {
-                if (_this.desiredRealityMapInverse.get(_this._current) === session) {
-                  _this._realitySession.send('ar.reality.message', message);
-                }
-              };
-            });
+          this._loaders = [];
+          if (sessionService.isManager) {
             sessionService.manager.connectEvent.addEventListener(function() {
               setTimeout(function() {
                 if (!_this._desired)
                   _this._setNextReality(_this.onSelectReality());
               });
             });
+          } else if (sessionService.isRealityView) {
+            this.frameEvent.addEventListener(function(frameState) {
+              _this.sessionService.manager.send('ar.reality.frameState', frameState);
+            });
           }
-          sessionService.manager.on['ar.reality.connect'] = function() {
-            var messageChannel = _this.sessionService.createMessageChannel();
+          sessionService.connectEvent.addEventListener(function(session) {
+            if (session.info.role !== common_1.Role.REALITY_VIEW) {
+              session.on['ar.reality.desired'] = function(message, event) {
+                var reality = message.reality;
+                var previous = _this.desiredRealityMap.get(session);
+                console.log('Session set desired reality: ' + JSON.stringify(reality));
+                if (reality) {
+                  if (_this.isSupported(reality.type)) {
+                    _this.desiredRealityMap.set(session, reality);
+                    _this.desiredRealityMapInverse.set(reality, session);
+                  } else {
+                    session.sendError({message: 'Reality of type "' + reality.type + '" is not available on this platform'});
+                    return;
+                  }
+                } else {
+                  _this.desiredRealityMap.delete(session);
+                }
+                _this._setNextReality(_this.onSelectReality());
+                _this.sessionDesiredRealityChangeEvent.raiseEvent({
+                  session: session,
+                  previous: previous,
+                  current: reality
+                });
+              };
+            }
+          });
+          sessionService.manager.on['ar.reality.connect'] = function(_a) {
+            var id = _a.id;
             var realityControlSession = _this.sessionService.createSessionPort();
+            var messageChannel = _this.sessionService.createMessageChannel();
+            var MESSAGE_KEY = 'ar.reality.message.' + id;
             messageChannel.port1.onmessage = function(msg) {
-              _this.sessionService.manager.send('ar.reality.message', msg.data);
+              _this.sessionService.manager.send(MESSAGE_KEY, msg);
             };
-            _this.sessionService.manager.on['ar.reality.message'] = function(message) {
+            _this.sessionService.manager.on[MESSAGE_KEY] = function(message) {
               messageChannel.port1.postMessage(message);
             };
             realityControlSession.connectEvent.addEventListener(function() {
@@ -1147,34 +1148,35 @@ $__System.register("8", ["b", "5", "9", "6", "d", "7", "e", "a"], function(expor
             });
             _this.sessionService.manager.closeEvent.addEventListener(function() {
               realityControlSession.close();
+              delete _this.sessionService.manager.on[MESSAGE_KEY];
             });
             realityControlSession.open(messageChannel.port2, _this.sessionService.configuration);
           };
         }
-        RealityService.prototype.registerHandler = function(handler) {
+        RealityService.prototype.registerLoader = function(handler) {
           this.sessionService.ensureIsManager();
-          this._handlers.push(handler);
+          this._loaders.push(handler);
         };
         RealityService.prototype.getCurrent = function() {
           return this._current;
         };
         RealityService.prototype.isSupported = function(type) {
           this.sessionService.ensureIsManager();
-          return !!this._getHandler(type);
+          return !!this._getLoader(type);
         };
         RealityService.prototype.setDesired = function(reality) {
-          if (reality && !reality['id'])
-            reality['id'] = cesium_imports_1.createGuid();
+          this.sessionService.ensureNotReality();
           this._desired = reality;
           this.sessionService.manager.send('ar.reality.desired', {reality: reality});
         };
         RealityService.prototype.getDesired = function() {
           return this._desired;
         };
+        RealityService.prototype.setOptionalReferenceFrames = function(referenceFrames) {};
+        RealityService.prototype.setRequiredReferenceFrames = function(referenceFrames) {};
         RealityService.prototype.setDefault = function(reality) {
           this.sessionService.ensureIsManager();
           this._default = reality;
-          this._default.id = 'default';
         };
         RealityService.prototype.onSelectReality = function() {
           this.sessionService.ensureIsManager();
@@ -1198,7 +1200,7 @@ $__System.register("8", ["b", "5", "9", "6", "d", "7", "e", "a"], function(expor
         RealityService.prototype._setNextReality = function(reality) {
           var _this = this;
           console.log('Setting reality: ' + JSON.stringify(reality));
-          if (this._current && reality && this._current.id === reality.id)
+          if (this._current && reality && this._current === reality)
             return;
           if (this._current && !reality)
             return;
@@ -1207,16 +1209,18 @@ $__System.register("8", ["b", "5", "9", "6", "d", "7", "e", "a"], function(expor
             if (!reality)
               return;
           }
-          var realitySession = this.sessionService.addManagedSessionPort();
-          realitySession.on['ar.reality.frameState'] = function(state) {
-            _this.frameEvent.raiseEvent(state);
-          };
-          realitySession.on['ar.reality.message'] = function(message) {
-            var owner = _this.desiredRealityMapInverse.get(reality) || _this.sessionService.manager;
-            owner.send('ar.reality.message', message);
-          };
-          realitySession.on['ar.reality.needsVideoBackground'] = function(message) {};
-          realitySession.connectEvent.addEventListener(function() {
+          var realitySessionPromise = Promise.resolve(this._executeRealityLoader(reality));
+          this._realitySessionPromise = realitySessionPromise;
+          this._realitySessionPromise.then(function(realitySession) {
+            if (_this._realitySessionPromise !== realitySessionPromise)
+              return;
+            if (!realitySession.isConnected())
+              throw new Error('Expected a connected session');
+            if (realitySession.info.role !== common_1.Role.REALITY_VIEW) {
+              realitySession.sendError({message: "Expected a reality session"});
+              realitySession.close();
+              throw new Error('The application "' + realitySession.info.name + '" cannot be loaded as a reality');
+            }
             var previousRealitySession = _this._realitySession;
             var previousReality = _this._current;
             _this._realitySession = realitySession;
@@ -1224,40 +1228,45 @@ $__System.register("8", ["b", "5", "9", "6", "d", "7", "e", "a"], function(expor
             if (previousRealitySession) {
               previousRealitySession.close();
             }
-            if (realitySession.info.role !== common_1.Role.REALITY_VIEW) {
-              realitySession.sendError({message: "Expected a reality session"});
-              realitySession.close();
-              return;
-            }
+            realitySession.on['ar.reality.frameState'] = function(state) {
+              _this.frameEvent.raiseEvent(state);
+            };
             if (realitySession.info.realityViewSupportsControlPort) {
-              var ownerSession = _this.desiredRealityMapInverse.get(reality) || _this.sessionService.manager;
-              var channel = _this.sessionService.createMessageChannel();
-              realitySession.send('ar.reality.connect');
-              ownerSession.send('ar.reality.connect');
+              var ownerSession_1 = _this.desiredRealityMapInverse.get(reality) || _this.sessionService.manager;
+              var id = cesium_imports_1.createGuid();
+              var MESSAGE_KEY_1 = 'ar.reality.message.' + id;
+              realitySession.on[MESSAGE_KEY_1] = function(message) {
+                ownerSession_1.send(MESSAGE_KEY_1, message);
+              };
+              ownerSession_1.on[MESSAGE_KEY_1] = function(message) {
+                realitySession.send(MESSAGE_KEY_1, message);
+              };
+              realitySession.send('ar.reality.connect', {id: id});
+              ownerSession_1.send('ar.reality.connect', {id: id});
+              realitySession.closeEvent.addEventListener(function() {
+                delete ownerSession_1.on[MESSAGE_KEY_1];
+                console.log('Reality session closed: ' + JSON.stringify(reality));
+                _this._setNextReality(_this.onSelectReality());
+              });
             }
+          }).catch(function(error) {
+            _this.sessionService.errorEvent.raiseEvent(error);
           });
-          realitySession.closeEvent.addEventListener(function() {
-            console.log('Reality session closed: ' + JSON.stringify(reality));
-            _this._setNextReality(_this.onSelectReality());
-          });
-          var messageChannel = this.sessionService.createMessageChannel();
-          realitySession.open(messageChannel.port1, this.sessionService.configuration);
-          this._executeRealitySetupHandler(reality, messageChannel.port2);
         };
-        RealityService.prototype._getHandler = function(type) {
+        RealityService.prototype._getLoader = function(type) {
           var found = undefined;
           for (var _i = 0,
-              _a = this._handlers; _i < _a.length; _i++) {
-            var handler = _a[_i];
-            if (handler.type === type) {
-              found = handler;
+              _a = this._loaders; _i < _a.length; _i++) {
+            var loader = _a[_i];
+            if (loader.type === type) {
+              found = loader;
               break;
             }
           }
           return found;
         };
         RealityService.prototype._setCurrent = function(reality) {
-          if (!this._current || this._current.id !== reality.id) {
+          if (!this._current || this._current !== reality) {
             var previous = this._current;
             this._current = reality;
             this.changeEvent.raiseEvent({
@@ -1267,26 +1276,27 @@ $__System.register("8", ["b", "5", "9", "6", "d", "7", "e", "a"], function(expor
             console.log('Reality changed to: ' + JSON.stringify(reality));
           }
         };
-        RealityService.prototype._executeRealitySetupHandler = function(reality, port) {
+        RealityService.prototype._executeRealityLoader = function(reality) {
           this.sessionService.ensureIsManager();
-          var handler = this._getHandler(reality.type);
-          if (!handler)
+          var loader = this._getLoader(reality.type);
+          if (!loader)
             throw new Error('Unable to setup unsupported reality type: ' + reality.type);
-          handler.setup(reality, port);
+          return loader.load(reality);
         };
         RealityService = __decorate([aurelia_dependency_injection_1.inject(session_1.SessionService, focus_1.FocusService)], RealityService);
         return RealityService;
       }());
       exports_1("RealityService", RealityService);
-      EmptyRealitySetupHandler = (function() {
-        function EmptyRealitySetupHandler(sessionService, deviceService, timer) {
+      EmptyRealityLoader = (function() {
+        function EmptyRealityLoader(sessionService, deviceService, timer) {
           this.sessionService = sessionService;
           this.deviceService = deviceService;
           this.timer = timer;
           this.type = 'empty';
         }
-        EmptyRealitySetupHandler.prototype.setup = function(reality, port) {
+        EmptyRealityLoader.prototype.load = function(reality) {
           var _this = this;
+          var realitySession = this.sessionService.addManagedSessionPort();
           var remoteRealitySession = this.sessionService.createSessionPort();
           var doUpdate = true;
           remoteRealitySession.connectEvent.addEventListener(function() {
@@ -1321,12 +1331,18 @@ $__System.register("8", ["b", "5", "9", "6", "d", "7", "e", "a"], function(expor
           remoteRealitySession.closeEvent.addEventListener(function() {
             doUpdate = false;
           });
-          remoteRealitySession.open(port, {role: common_1.Role.REALITY_VIEW});
+          var messageChannel = this.sessionService.createSynchronousMessageChannel();
+          realitySession.open(messageChannel.port1, this.sessionService.configuration);
+          remoteRealitySession.open(messageChannel.port2, {
+            role: common_1.Role.REALITY_VIEW,
+            name: 'empty'
+          });
+          return realitySession;
         };
-        EmptyRealitySetupHandler = __decorate([aurelia_dependency_injection_1.inject(session_1.SessionService, device_1.DeviceService, timer_1.TimerService)], EmptyRealitySetupHandler);
-        return EmptyRealitySetupHandler;
+        EmptyRealityLoader = __decorate([aurelia_dependency_injection_1.inject(session_1.SessionService, device_1.DeviceService, timer_1.TimerService)], EmptyRealityLoader);
+        return EmptyRealityLoader;
       }());
-      exports_1("EmptyRealitySetupHandler", EmptyRealitySetupHandler);
+      exports_1("EmptyRealityLoader", EmptyRealityLoader);
     }
   };
 });
@@ -2279,8 +2295,12 @@ $__System.register("7", ["5", "b", "6", "a"], function(exports_1, context_1) {
                 });
               }
             } else {
-              var error = {message: 'Unable to handle message ' + topic};
-              _this.send(SessionPort.ERROR, error);
+              var errorMessage = 'Unable to handle message ' + topic;
+              if (expectsResponse) {
+                _this.send(topic + ':reject:' + id, {reason: errorMessage});
+              } else {
+                _this.send(SessionPort.ERROR, {message: errorMessage});
+              }
               throw new Error('No handlers are available for topic ' + topic);
             }
           };
@@ -2295,6 +2315,7 @@ $__System.register("7", ["5", "b", "6", "a"], function(exports_1, context_1) {
           return true;
         };
         SessionPort.prototype.sendError = function(errorMessage) {
+          console.log('Sending error to session "' + this.info.name + "' : " + JSON.stringify(errorMessage));
           return this.send(SessionPort.ERROR, errorMessage);
         };
         SessionPort.prototype.request = function(topic, message) {
@@ -2322,11 +2343,11 @@ $__System.register("7", ["5", "b", "6", "a"], function(exports_1, context_1) {
         SessionPort.prototype.close = function() {
           if (this._isClosed)
             return;
+          this._isClosed = true;
+          this._isConnected = false;
           if (this._isOpened) {
             this.send(SessionPort.CLOSE);
           }
-          this._isClosed = true;
-          this._isConnected = false;
           if (this.messagePort && this.messagePort.close)
             this.messagePort.close();
           this.closeEvent.raiseEvent(null);
@@ -2372,7 +2393,6 @@ $__System.register("7", ["5", "b", "6", "a"], function(exports_1, context_1) {
         }
         Object.defineProperty(SessionService.prototype, "connectEvent", {
           get: function() {
-            this.ensureIsManager();
             return this._connectEvent;
           },
           enumerable: true,
@@ -2417,15 +2437,27 @@ $__System.register("7", ["5", "b", "6", "a"], function(exports_1, context_1) {
         SessionService.prototype.createSynchronousMessageChannel = function() {
           return this.messageChannelFactory.createSynchronous();
         };
-        SessionService.prototype.isManager = function() {
-          return this.configuration.role === common_1.Role.MANAGER;
-        };
-        SessionService.prototype.isApplication = function() {
-          return this.configuration.role === common_1.Role.APPLICATION;
-        };
-        SessionService.prototype.isRealityView = function() {
-          return this.configuration.role === common_1.Role.REALITY_VIEW;
-        };
+        Object.defineProperty(SessionService.prototype, "isManager", {
+          get: function() {
+            return this.configuration.role === common_1.Role.MANAGER;
+          },
+          enumerable: true,
+          configurable: true
+        });
+        Object.defineProperty(SessionService.prototype, "isApplication", {
+          get: function() {
+            return this.configuration.role === common_1.Role.APPLICATION;
+          },
+          enumerable: true,
+          configurable: true
+        });
+        Object.defineProperty(SessionService.prototype, "isRealityView", {
+          get: function() {
+            return this.configuration.role === common_1.Role.REALITY_VIEW;
+          },
+          enumerable: true,
+          configurable: true
+        });
         SessionService.prototype.ensureIsManager = function() {
           if (!this.isManager)
             throw new Error('An manager-only API was accessed in a non-manager session.');
@@ -2433,6 +2465,10 @@ $__System.register("7", ["5", "b", "6", "a"], function(exports_1, context_1) {
         SessionService.prototype.ensureIsReality = function() {
           if (!this.isRealityView)
             throw new Error('An reality-only API was accessed in a non-reality session.');
+        };
+        SessionService.prototype.ensureNotReality = function() {
+          if (this.isRealityView)
+            throw new Error('An non-reality API was accessed in a reality session.');
         };
         SessionService = __decorate([aurelia_dependency_injection_1.inject('config', ConnectService, SessionPortFactory, utils_1.MessageChannelFactory)], SessionService);
         return SessionService;
@@ -2555,7 +2591,7 @@ $__System.register("10", ["b", "6", "d", "8", "7", "a"], function(exports_1, con
       VuforiaHint,
       VuforiaServiceDelegateBase,
       VuforiaServiceDelegate,
-      VuforiaRealitySetupHandler,
+      LiveVideoRealityLoader,
       VuforiaService,
       VuforiaAPI,
       VuforiaTracker,
@@ -2656,13 +2692,14 @@ $__System.register("10", ["b", "6", "d", "8", "7", "a"], function(exports_1, con
         return VuforiaServiceDelegate;
       }(VuforiaServiceDelegateBase));
       exports_1("VuforiaServiceDelegate", VuforiaServiceDelegate);
-      VuforiaRealitySetupHandler = (function() {
-        function VuforiaRealitySetupHandler(sessionService, delegate) {
+      LiveVideoRealityLoader = (function() {
+        function LiveVideoRealityLoader(sessionService, delegate) {
           this.sessionService = sessionService;
           this.delegate = delegate;
-          this.type = 'vuforia';
+          this.type = 'live-video';
         }
-        VuforiaRealitySetupHandler.prototype.setup = function(reality, port) {
+        LiveVideoRealityLoader.prototype.load = function(reality) {
+          var realitySession = this.sessionService.addManagedSessionPort();
           var remoteRealitySession = this.sessionService.createSessionPort();
           var remove = this.delegate.stateUpdateEvent.addEventListener(function(frameState) {
             remoteRealitySession.send('ar.reality.frameState', frameState);
@@ -2670,12 +2707,15 @@ $__System.register("10", ["b", "6", "d", "8", "7", "a"], function(exports_1, con
           remoteRealitySession.closeEvent.addEventListener(function() {
             remove();
           });
-          remoteRealitySession.open(port, {role: common_1.Role.REALITY_VIEW});
+          var messageChannel = this.sessionService.createSynchronousMessageChannel();
+          realitySession.open(messageChannel.port1, this.sessionService.configuration);
+          remoteRealitySession.open(messageChannel.port2, {role: common_1.Role.REALITY_VIEW});
+          return realitySession;
         };
-        VuforiaRealitySetupHandler = __decorate([aurelia_dependency_injection_1.inject(session_1.SessionService, VuforiaServiceDelegate)], VuforiaRealitySetupHandler);
-        return VuforiaRealitySetupHandler;
+        LiveVideoRealityLoader = __decorate([aurelia_dependency_injection_1.inject(session_1.SessionService, VuforiaServiceDelegate)], LiveVideoRealityLoader);
+        return LiveVideoRealityLoader;
       }());
-      exports_1("VuforiaRealitySetupHandler", VuforiaRealitySetupHandler);
+      exports_1("LiveVideoRealityLoader", LiveVideoRealityLoader);
       VuforiaService = (function() {
         function VuforiaService(sessionService, focusService, realityService, delegate) {
           var _this = this;
@@ -2693,7 +2733,7 @@ $__System.register("10", ["b", "6", "d", "8", "7", "a"], function(exports_1, con
           this._sessionCreatedDataSets = new WeakMap();
           this._sessionActivatedDataSets = new WeakMap();
           this._isInitialized = false;
-          if (sessionService.isManager()) {
+          if (sessionService.isManager) {
             this._sessionSwitcherCommandQueue.errorEvent.addEventListener(function(err) {
               _this.sessionService.errorEvent.raiseEvent(err);
             });
@@ -14248,22 +14288,46 @@ $__System.register("a", ["15", "5"], function(exports_1, context_1) {
       SynchronousMessageChannel = (function() {
         function SynchronousMessageChannel() {
           var messageChannel = this;
+          var pendingMessages1 = [];
+          var onmessage1 = function(message) {
+            pendingMessages1.push(message);
+          };
           messageChannel.port1 = {
-            onmessage: undefined,
+            get onmessage() {
+              return onmessage1;
+            },
+            set onmessage(func) {
+              onmessage1 = func;
+              pendingMessages1.forEach(function(data) {
+                return func(data);
+              });
+              pendingMessages1 = [];
+            },
             postMessage: function(data) {
-              if (messageChannel.port2.onmessage)
-                messageChannel.port2.onmessage({data: data});
+              messageChannel.port2.onmessage({data: data});
             },
             close: function() {
               messageChannel.port1.onmessage = null;
               messageChannel.port2.onmessage = null;
             }
           };
+          var pendingMessages2 = [];
+          var onmessage2 = function(message) {
+            pendingMessages2.push(message);
+          };
           messageChannel.port2 = {
-            onmessage: undefined,
+            get onmessage() {
+              return onmessage2;
+            },
+            set onmessage(func) {
+              onmessage2 = func;
+              pendingMessages2.forEach(function(data) {
+                return func(data);
+              });
+              pendingMessages2 = [];
+            },
             postMessage: function(data) {
-              if (messageChannel.port1.onmessage)
-                messageChannel.port1.onmessage({data: data});
+              messageChannel.port1.onmessage({data: data});
             },
             close: function() {
               messageChannel.port1.onmessage = null;
@@ -14396,7 +14460,6 @@ $__System.register("1", ["2", "b", "5", "7", "6", "4", "e", "d", "8", "9", "c", 
           if (!ArgonSystem.instance)
             ArgonSystem.instance = this;
           container.registerInstance('config', config);
-          container.registerInstance(common_1.Role, config.role);
           container.registerInstance(ArgonSystem, this);
           if (config.role === common_1.Role.MANAGER) {
             container.registerSingleton(session_1.ConnectService, session_1.LoopbackConnectService);
@@ -14410,10 +14473,13 @@ $__System.register("1", ["2", "b", "5", "7", "6", "4", "e", "d", "8", "9", "c", 
             container.registerSingleton(session_1.ConnectService, session_1.LoopbackConnectService);
           }
           if (config.role === common_1.Role.MANAGER) {
-            this.reality.registerHandler(container.get(reality_1.EmptyRealitySetupHandler));
-            this.reality.registerHandler(container.get(vuforia_1.VuforiaRealitySetupHandler));
+            this.reality.registerLoader(container.get(reality_1.EmptyRealityLoader));
+            this.reality.registerLoader(container.get(vuforia_1.LiveVideoRealityLoader));
             if (typeof document !== 'undefined') {
-              this.reality.setDefault({type: 'empty'});
+              this.reality.setDefault({
+                type: 'empty',
+                name: 'Empty Reality'
+              });
             }
           }
           for (var _i = 0,

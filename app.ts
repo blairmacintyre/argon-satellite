@@ -4,8 +4,17 @@ declare const THREE: any;
 declare const Argon: any;
 declare const satellite: any;
 
+// initialize Argon
 const app = Argon.init();
 
+// set the local origin to EUS so that 
+// +X is east, +Y is up, and +Z is south 
+// (this is just an example, use whatever origin you prefer)
+app.context.setDefaultReferenceFrame(app.context.localOriginEastUpSouth);
+
+//
+// create the Three.js scene
+//
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera();
 export const user = new THREE.Object3D();
@@ -14,22 +23,42 @@ scene.add(camera);
 scene.add(user);
 scene.add(userLocation);
 
-const cssRenderer = new THREE.CSS3DRenderer();
+// our two renders (WebGL and CSS)
+const cssRenderer = new THREE.CSS3DStereoRenderer();
 const webglRenderer = new THREE.WebGLRenderer({ alpha: true, logarithmicDepthBuffer: true });
-
-app.view.element.appendChild(cssRenderer.domElement);
 app.view.element.appendChild(webglRenderer.domElement);
+app.view.element.appendChild(cssRenderer.domElement);
 
-// an entity for the satellite
-let issECEF = new Argon.Cesium.Entity({
-    name: "ISS"
-});
+// We put some elements in the index.html, for convenience. 
+// So let's duplicate and move the information box to the hudElements 
+// of the css renderer
+let menu = document.getElementById('menu');
+let menu2: HTMLElement = menu.cloneNode( true ) as HTMLElement;
+menu2.id = "menu2";   // make the id unique
 
+var menuchild = menu.getElementsByClassName('location');
+let elem = menuchild.item(0) as HTMLElement;
+menuchild = menu2.getElementsByClassName('location');
+let elem2 = menuchild.item(0) as HTMLElement;
+
+menu.remove();
+menu2.remove();
+cssRenderer.hudElements[0].appendChild(menu);
+cssRenderer.hudElements[1].appendChild(menu2);
+
+//
+// Let's set up the Satellite tracking and rendering 
+//
+ 
+// a place to store the TLE for the ISS when it's been fetched.
+// The TLE describes the trajectory of the ISS around the earth
 var tleISS = null;
-// ["1 25544U 98067A   16112.14571222  .00005151  00000-0  84475-4 0  9999", "2 25544  51.6445 342.5532 0001777  51.9026  92.7043 15.54299694996100"];
 
+// the actual satellite object for the ISS, initialized from the TLE
 let satrec = null;
 
+// run when the TLE file has been download.  We are mirroring the 
+// 100 most visible satelitte's TLE file from celestrak.org on our server 
 function onLoad (tle) {
     tleISS = tle["ISS (ZARYA)"];
     satrec = satellite.twoline2satrec(tleISS[0], tleISS[1]);
@@ -63,16 +92,63 @@ function onError (error: ErrorEvent) {
 // from http://celestrak.com/NORAD/elements/visual.txt
 loader.loadTLEs("includes/visual.txt", onLoad, onProgress, onError);
 
+//
+// now that the ISS object is set up, let's render it in the sky.  We'll use
+// the satellite library to convert all the way into ECEF coordinates, and 
+// then move into Cesium.  We could probably use Cesium's INERTIAL to FIXED 
+// conversion instead, but this seems simplest.
+//
+// use a Cesium SampledPosition, and keep a future value in there, so we can 
+// interpolate to "now" whenever we need
+
+// a Cesium entity for the satellite
+let issECEF = new Argon.Cesium.Entity({
+    name: "ISS"
+});
+
 const issPosition = new Argon.Cesium.SampledPositionProperty(
                             Argon.Cesium.ReferenceFrame.FIXED, 1);
 issPosition.forwardExtrapolationType = Argon.Cesium.ExtrapolationType.EXTRAPOLATE;
 issECEF.position = issPosition;
 
-let lastMinute = -1;  // want it to always run once; (new Date()).getUTCSeconds();
+// ISS object
+const issObject = new THREE.Object3D;
+scene.add(issObject);
 
+// ISS texture from 
+// http://765.blogspot.com/2014/07/what-does-international-space-station.html
+
+
+// REPLACE THE BOX with Three.Sprite
+// http://threejs.org/docs/#Reference/Objects/Sprite
+//
+// Draw a path for the past/future trajectory, using Three.Line
+// http://threejs.org/docs/#Reference/Objects/Line
+
+const satObj = new THREE.Object3D;
+const texloader = new THREE.TextureLoader()
+texloader.load( 'includes/ISS-2011.png', function ( texture ) {
+    const material = new THREE.SpriteMaterial( { map: texture, color: 0xffffff, fog: false } );
+    const sprite = new THREE.Sprite( material );
+	sprite.scale.copy(new THREE.Vector3( 100, 100, 100 ));
+    satObj.add( sprite );
+});
+issObject.add(satObj);
+
+let issHeightDiv = document.getElementById("iss-height");
+let issHeightDiv2 = issHeightDiv.cloneNode(true) as HTMLElement;
+const issObjectLabel = new THREE.CSS3DSprite([issHeightDiv, issHeightDiv2]);
+//const issObjectLabel = new THREE.CSS3DObject([issHeightDiv, issHeightDiv2]);
+issObjectLabel.scale.copy(new THREE.Vector3( 2, 2, 2 ));
+
+issObject.add(issObjectLabel);
+
+//
+// compute the orbit (15 minutes before and after it's current position) 
+// so we can draw it
+//
 let orbitECF = undefined;
 let orbitXYZ = undefined;
-
 function initOrbit (julian) {
     orbitECF = [];
     orbitXYZ = new THREE.Geometry();
@@ -119,6 +195,9 @@ function updateOrbit (julian) {
     orbitXYZ.verticesNeedUpdate = true;
 }
 
+//
+// compute the satellite position
+//
 function computeSatPos (julian) {            
     //  Or you can use a calendar date and time (obtained from Javascript Date).
     const now = Argon.Cesium.JulianDate.toDate(julian);
@@ -232,15 +311,9 @@ function toFixed(value, precision) {
     const power = Math.pow(10, precision || 0);
     return String(Math.round(value * power) / power);
 }
-
-// Create a buffer of points based on time in the past/future.  Add/remove a point
-// each minute (say).  Draw a line based on these points.
  
-// set the local origin to EUS so that 
-// +X is east, +Y is up, and +Z is south 
-// (this is just an example, use whatever origin you prefer)
-app.context.setDefaultReferenceFrame(app.context.localOriginEastUpSouth);
 
+let lastMinute = -1;  // want it to always run once; (new Date()).getUTCSeconds();
 app.updateEvent.addEventListener((state) => {
     const time = app.context.getTime();
     const currMinute = (Argon.Cesium.JulianDate.toDate(time)).getUTCMinutes();
@@ -273,7 +346,6 @@ app.updateEvent.addEventListener((state) => {
         Argon.Cesium.Cartesian3.add(relPos, userPose.position, relPos);
         issObject.position.copy(relPos);
     }
-    let elem = document.getElementById('location');
 
     if (satrec) {
         let latitude = 0;
@@ -292,150 +364,56 @@ app.updateEvent.addEventListener((state) => {
         }
 
         let infoText = "ISS location: " + toFixed(longitude,6) +
-            ", " + toFixed(latitude,6) + ", " +
-            toFixed(height,6);
+            ", " + toFixed(latitude,6);
         elem.innerText = infoText;
+        elem2.innerText = infoText;
+        let heightText = "ISS Height: " + toFixed(height,6);
+        issHeightDiv.innerText = heightText;
+        issHeightDiv2.innerText = heightText;
     } else {
-        elem.innerText = "Waiting for TLE file to download";
+        let msg = "Waiting for TLE file to download";
+        elem.innerText = msg;
+        elem2.innerText = msg;
+        issHeightDiv.innerText = msg;
+        issHeightDiv2.innerText = msg;
     }
 });
 
-// code to compute the FOV we need to render the CSS properly
-//
-var oldProjection = null;
-var oldFOV = 0;
-function projectionEquals(projection: number[]) {
-    if (!oldProjection) {
-        oldProjection = projection.slice(0); // shallow copy
-        return false;
-    } else {
-        const epsilon = 0.001;
-        var equals = (Math.abs(oldProjection[0] - projection[0]) <= epsilon &&
-                Math.abs(oldProjection[1] - projection[1]) <= epsilon &&
-                Math.abs(oldProjection[2] - projection[2]) <= epsilon &&
-                Math.abs(oldProjection[3] - projection[3]) <= epsilon &&
-                Math.abs(oldProjection[4] - projection[4]) <= epsilon &&
-                Math.abs(oldProjection[5] - projection[5]) <= epsilon &&
-                Math.abs(oldProjection[6] - projection[6]) <= epsilon &&
-                Math.abs(oldProjection[7] - projection[7]) <= epsilon &&
-                Math.abs(oldProjection[8] - projection[8]) <= epsilon &&
-                Math.abs(oldProjection[9] - projection[9]) <= epsilon &&
-                Math.abs(oldProjection[10] - projection[10]) <= epsilon &&
-                Math.abs(oldProjection[11] - projection[11]) <= epsilon &&
-                Math.abs(oldProjection[12] - projection[12]) <= epsilon &&
-                Math.abs(oldProjection[13] - projection[13]) <= epsilon &&
-                Math.abs(oldProjection[14] - projection[14]) <= epsilon &&
-                Math.abs(oldProjection[15] - projection[15]) <= epsilon);
-         if (!equals) {
-            oldProjection = projection.slice(0); // shallow copy
-         }
-         return equals;
-    }
-}
-
-function applyProjection(x, y, e ) {
-		var z = 0.5; // any depth will do, just use the middle of the canonical depth space
-		var d = 1 / ( e[ 3 ] * x + e[ 7 ] * y + e[ 11 ] * z + e[ 15 ] ); // perspective divide
-
-		var nx = ( e[ 0 ] * x + e[ 4 ] * y + e[ 8 ]  * z + e[ 12 ] ) * d;
-		var ny = ( e[ 1 ] * x + e[ 5 ] * y + e[ 9 ]  * z + e[ 13 ] ) * d;
-		var nz = ( e[ 2 ] * x + e[ 6 ] * y + e[ 10 ] * z + e[ 14 ] ) * d;
-
-		var len = Math.sqrt(nx * nx + ny * ny + nz * nz);
-        return [nx/len, ny/len, nz/len];
-}
-
-function angleBetween (v1, v2) {
-    var dot = v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
-    // assuming normalized, don't need: / ( Math.sqrt( this.lengthSq() * v.lengthSq() ) );
-
-    // clamp, to handle numerical problems
-	var theta = Math.max( -1, Math.min( 1, dot ) );
-	return Math.acos( theta );
-} 
-        
-function getFOV(projection: number[]) {
-    if (!projectionEquals(projection)) {
-         if (!projection || projection == undefined || projection.length < 16) {
-           console.log("called getFOV with bad projection");
-           oldFOV += 0.001;  // slight change to trigger change things below
-           return oldFOV;
-         }    
-         console.log("get FOV: projection={" + projection[0] + ", " + projection[1]+", ...}")
-         var proj = Argon.Cesium.Matrix4.fromColumnMajorArray(projection);
-         var projInv = Argon.Cesium.Matrix4.inverse(proj, Argon.Cesium.Matrix4.IDENTITY.clone());
-
-         var v1 = applyProjection(0,1,projInv);
-         console.log("get FOV: v1={" + v1[0] + ", " + v1[1]+", " + v1[2] +"}")
-         var v2 = applyProjection(0,-1,projInv);
-         console.log("get FOV: v2={" + v2[0] + ", " + v2[1]+", " + v2[2] +"}")
-		 oldFOV = angleBetween(v1,v2) * 180 / Math.PI;
-         console.log("get FOV: " + oldFOV);
-    }
-    return oldFOV;
-}
 
 app.renderEvent.addEventListener(() => {
     const viewport = app.view.getViewport();    
 
     webglRenderer.setSize(viewport.width, viewport.height);    
     cssRenderer.setSize(viewport.width, viewport.height);
+    var i = 0;
     for (let subview of app.view.getSubviews()) {
         const {x,y,width,height} = subview.viewport;
-        var fov = getFOV(subview.projectionMatrix);
+
+        camera.position.copy(subview.pose.position);
+        camera.quaternion.copy(subview.pose.orientation);
+        camera.projectionMatrix.fromArray(subview.projectionMatrix);
+
+        var fov = camera.fov;
+        cssRenderer.updateCameraFOVFromProjection(camera);
         if (camera.fov != fov) {
             console.log("viewport: " + viewport.width + "x" + viewport.height);
             console.log("subview: " + x + "x" + y + " " + width + "x" + height);
             camera.fov = fov;  // update this because CSS renderer needs it
         }    
-        camera.position.copy(subview.pose.position);
-        camera.quaternion.copy(subview.pose.orientation);
-        camera.projectionMatrix.fromArray(subview.projectionMatrix);
+        
+        cssRenderer.setViewport(x,y,width,height, i);
+        cssRenderer.render(scene, camera, i);
+                
         webglRenderer.setViewport(x,y,width,height);
         webglRenderer.setScissor(x,y,width,height);
         webglRenderer.setScissorTest(true);
         webglRenderer.render(scene, camera);
-        
-        // only render the css content if we are in one view
-        if (subview.type == Argon.SubviewType.SINGULAR) {
-            //cssRenderer.setViewport(x,y,width,height);
-            cssRenderer.render(scene, camera);
-            cssRenderer.domElement.style.display = "block";
-        } else {
-            cssRenderer.domElement.style.display = "none";
-        }
+
+        i++;
     }
+    // want to force a layout of the DOM, so read something!
+    var stupidtext = elem.innerHTML;
 });
-
-// ISS object
-const issObject = new THREE.Object3D;
-scene.add(issObject);
-
-// create a 100m cube with a wooden box texture on it, that we will attach to 
-// the geospatial object for the ISS 
-// Box texture from https://www.flickr.com/photos/photoshoproadmap/8640003215/sizes/l/in/photostream/
-//, licensed under https://creativecommons.org/licenses/by/2.0/legalcode
-//
-// ISS texture from 
-// http://765.blogspot.com/2014/07/what-does-international-space-station.html
-
-
-// REPLACE THE BOX with Three.Sprite
-// http://threejs.org/docs/#Reference/Objects/Sprite
-//
-// Draw a path for the past/future trajectory, using Three.Line
-// http://threejs.org/docs/#Reference/Objects/Line
-
-const satObj = new THREE.Object3D;
-const texloader = new THREE.TextureLoader()
-texloader.load( 'includes/ISS-2011.png', function ( texture ) {
-    const material = new THREE.SpriteMaterial( { map: texture, color: 0xffffff, fog: false } );
-    const sprite = new THREE.Sprite( material );
-	sprite.scale.copy(new THREE.Vector3( 100, 100, 100 ));
-    satObj.add( sprite );
-});
-issObject.add(satObj);
-scene.add(issObject);
 
 // creating 6 divs to indicate the x y z positioning
 const divXpos = document.createElement('div')
