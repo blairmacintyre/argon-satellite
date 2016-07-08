@@ -4,6 +4,16 @@ declare const THREE: any;
 declare const Argon: any;
 declare const satellite: any;
 
+// grab some handles on APIs we use
+const Cesium = Argon.Cesium;
+const Cartesian3 = Cesium.Cartesian3;
+const JulianDate = Cesium.JulianDate;
+const CesiumMath = Cesium.CesiumMath;
+const Transforms = Cesium.Transforms;
+const WGS84 = Cesium.Ellipsoid.WGS84;
+const ConstantPositionProperty = Cesium.ConstantPositionProperty;
+const ReferenceFrame = Cesium.ReferenceFrame;
+
 // initialize Argon
 const app = Argon.init();
 
@@ -24,7 +34,7 @@ scene.add(user);
 scene.add(userLocation);
 
 // our two renders (WebGL and CSS)
-const cssRenderer = new THREE.CSS3DStereoRenderer();
+const cssRenderer = new THREE.CSS3DArgonRenderer();
 const webglRenderer = new THREE.WebGLRenderer({ alpha: true, logarithmicDepthBuffer: true });
 app.view.element.appendChild(webglRenderer.domElement);
 app.view.element.appendChild(cssRenderer.domElement);
@@ -102,13 +112,13 @@ loader.loadTLEs("includes/visual.txt", onLoad, onProgress, onError);
 // interpolate to "now" whenever we need
 
 // a Cesium entity for the satellite
-let issECEF = new Argon.Cesium.Entity({
-    name: "ISS"
+let issECEF = new Cesium.Entity({
+    name: "ISS",
+    orientation: Cesium.Quaternion.IDENTITY
 });
 
-const issPosition = new Argon.Cesium.SampledPositionProperty(
-                            Argon.Cesium.ReferenceFrame.FIXED, 1);
-issPosition.forwardExtrapolationType = Argon.Cesium.ExtrapolationType.EXTRAPOLATE;
+const issPosition = new Cesium.SampledPositionProperty(ReferenceFrame.FIXED, 1);
+issPosition.forwardExtrapolationType = Cesium.ExtrapolationType.EXTRAPOLATE;
 issECEF.position = issPosition;
 
 // ISS object
@@ -154,7 +164,7 @@ function initOrbit (julian) {
     orbitXYZ = new THREE.Geometry();
     
     // start some minutes ago
-    Argon.Cesium.JulianDate.addMinutes(julian, -15, julian);
+    JulianDate.addMinutes(julian, -15, julian);
 
     var positionEcf;
     var position;
@@ -163,13 +173,13 @@ function initOrbit (julian) {
     const frame = app.context.getDefaultReferenceFrame();
     for (var i = 0; i < 30; i++) {
         positionEcf = computeSatPos(julian);
-        position = new Argon.Cesium.ConstantPositionProperty(
-            Argon.Cesium.Cartesian3.fromElements(positionEcf.x, positionEcf.y, positionEcf.z));
+        position = new ConstantPositionProperty(
+            Cartesian3.fromElements(positionEcf.x, positionEcf.y, positionEcf.z));
         orbitECF.push(position);
         localPos = position.getValueInReferenceFrame(julian, frame);
         vec3 = new THREE.Vector3(localPos.x,localPos.y,localPos.z);
         orbitXYZ.vertices.push(vec3);   
-        Argon.Cesium.JulianDate.addMinutes(julian, 1, julian);
+        JulianDate.addMinutes(julian, 1, julian);
     }
 }
 
@@ -186,8 +196,8 @@ function updateOrbit (julian) {
     
     const frame = app.context.getDefaultReferenceFrame();
     const positionEcf = computeSatPos(julian);
-    const position = new Argon.Cesium.ConstantPositionProperty(
-            Argon.Cesium.Cartesian3.fromElements(positionEcf.x, positionEcf.y, positionEcf.z));
+    const position = new ConstantPositionProperty(
+            Cartesian3.fromElements(positionEcf.x, positionEcf.y, positionEcf.z));
     orbitECF.push(position);
     const localPos = position.getValueInReferenceFrame(julian, frame);
     const vec3 = new THREE.Vector3(localPos.x,localPos.y,localPos.z);
@@ -200,7 +210,7 @@ function updateOrbit (julian) {
 //
 function computeSatPos (julian) {            
     //  Or you can use a calendar date and time (obtained from Javascript Date).
-    const now = Argon.Cesium.JulianDate.toDate(julian);
+    const now = JulianDate.toDate(julian);
 
     // NOTE: while Javascript Date returns months in range 0-11, 
     // all satellite.js methods require months in range 1-12.
@@ -250,7 +260,7 @@ function updateSat (julian) {
         return;  // do nothing if we don't have the satellite definitions yet
 
     //  Or you can use a calendar date and time (obtained from Javascript Date).
-    const now = Argon.Cesium.JulianDate.toDate(julian);
+    const now = JulianDate.toDate(julian);
 
     // NOTE: while Javascript Date returns months in range 0-11, 
     // all satellite.js methods require months in range 1-12.
@@ -298,9 +308,9 @@ function updateSat (julian) {
     velocityEcf.z *= 1000.0;
 
     // add a sample with the newly computed value
-    issECEF.position.addSample(Argon.Cesium.JulianDate.fromDate(now),
-        new Argon.Cesium.Cartesian3(positionEcf.x, positionEcf.y, positionEcf.z),
-        [new Argon.Cesium.Cartesian3(velocityEcf.x, velocityEcf.y, velocityEcf.z)]);
+    issECEF.position.addSample(JulianDate.fromDate(now),
+        new Cartesian3(positionEcf.x, positionEcf.y, positionEcf.z),
+        [new Cartesian3(velocityEcf.x, velocityEcf.y, velocityEcf.z)]);
 
 }
 // run it once so we have valid values in the globals
@@ -316,7 +326,7 @@ function toFixed(value, precision) {
 let lastMinute = -1;  // want it to always run once; (new Date()).getUTCSeconds();
 app.updateEvent.addEventListener((state) => {
     const time = app.context.getTime();
-    const currMinute = (Argon.Cesium.JulianDate.toDate(time)).getUTCMinutes();
+    const currMinute = (JulianDate.toDate(time)).getUTCMinutes();
     if (currMinute !== lastMinute) {
         lastMinute = currMinute;
         updateSat(time);
@@ -336,14 +346,14 @@ app.updateEvent.addEventListener((state) => {
 
     const issECEFState = app.context.getEntityPose(issECEF);
     if (issECEFState.poseStatus) {
-        const relPos = Argon.Cesium.Cartesian3.subtract(issECEFState.position,
+        const relPos = Cartesian3.subtract(issECEFState.position,
                                                         userPose.position,
-                                                        new Argon.Cesium.Cartesian3());
-        const magnitude = Argon.Cesium.Cartesian3.magnitude(relPos);
+                                                        new Cartesian3());
+        const magnitude = Cartesian3.magnitude(relPos);
 
         // make it 1 km away in the same direction
-        Argon.Cesium.Cartesian3.multiplyByScalar(relPos, 1000.0 / magnitude, relPos);
-        Argon.Cesium.Cartesian3.add(relPos, userPose.position, relPos);
+        Cartesian3.multiplyByScalar(relPos, 1000.0 / magnitude, relPos);
+        Cartesian3.add(relPos, userPose.position, relPos);
         issObject.position.copy(relPos);
     }
 
@@ -353,12 +363,12 @@ app.updateEvent.addEventListener((state) => {
         let height = 0;
 
         const issECEFStateFIXED = app.context.getEntityPose(issECEF,
-                Argon.Cesium.ReferenceFrame.FIXED);
+                ReferenceFrame.FIXED);
         if (issECEFStateFIXED.poseStatus) {
-            const pos = Argon.Cesium.Ellipsoid.WGS84.cartesianToCartographic(issECEFStateFIXED.position);
+            const pos = WGS84.cartesianToCartographic(issECEFStateFIXED.position);
             if (pos) {
-                longitude = Argon.Cesium.CesiumMath.toDegrees(pos.longitude);
-                latitude = Argon.Cesium.CesiumMath.toDegrees(pos.latitude);
+                longitude = CesiumMath.toDegrees(pos.longitude);
+                latitude = CesiumMath.toDegrees(pos.latitude);
                 height = pos.height;
             }
         }
@@ -395,14 +405,14 @@ app.renderEvent.addEventListener(() => {
 
         var fov = camera.fov;
         cssRenderer.updateCameraFOVFromProjection(camera);
+        cssRenderer.setViewport(x,y,width,height, i);
+        cssRenderer.render(scene, camera, i);
+
         if (camera.fov != fov) {
             console.log("viewport: " + viewport.width + "x" + viewport.height);
             console.log("subview: " + x + "x" + y + " " + width + "x" + height);
-            camera.fov = fov;  // update this because CSS renderer needs it
-        }    
-        
-        cssRenderer.setViewport(x,y,width,height, i);
-        cssRenderer.render(scene, camera, i);
+            console.log("fov: " + fov + ", CSS FOV: " + cssRenderer.fovStyle)
+        }            
                 
         webglRenderer.setViewport(x,y,width,height);
         webglRenderer.setScissor(x,y,width,height);

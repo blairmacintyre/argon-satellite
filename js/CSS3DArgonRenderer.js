@@ -12,14 +12,15 @@ THREE.CSS3DObject = function ( element ) {
 	if (Array.isArray(element)) {
 		for (var i =0; i <element.length; i++) {
 			this.elements[i] = element[i];
-			this.elements[i].style.position = 'absolute';
 		}
 	} else {
 		this.elements[0] = element;
-		this.elements[0].style.position = 'absolute';
 		this.elements[1] = element.cloneNode( true );
-		this.elements[1].style.position = 'absolute';
 	}
+
+	this.elements.forEach(function(el){
+		el.style.position = 'absolute';
+	});
 
 	this.addEventListener( 'removed', function ( event ) {
 		for (var i =0; i <this.elements.length; i++) {
@@ -43,9 +44,9 @@ THREE.CSS3DSprite.prototype.constructor = THREE.CSS3DSprite;
 
 //
 
-THREE.CSS3DStereoRenderer = function () {
+THREE.CSS3DArgonRenderer = function () {
 
-	console.log( 'THREE.CSS3DStereoRenderer', THREE.REVISION );
+	console.log( 'THREE.CSS3DArgonRenderer', THREE.REVISION );
 
 	var _cameras = [];
 
@@ -54,29 +55,17 @@ THREE.CSS3DStereoRenderer = function () {
 	var _viewHeight = [];
 
 	var matrix = new THREE.Matrix4();
+
+	var cache = {
+		camera: { fov: [], style: [] },
+		objects: {}
+	};
 	
 	//
 
 	var domElement = document.createElement( 'div' );
 	this.domElement = domElement;
-
-	//
-
-	var hudElements = [];
-	this.hudElements = hudElements;
-	hudElements[0] = document.createElement( 'div' );
-	hudElements[0].style.display = 'none'; // start hidden
-	hudElements[0].style.position = 'absolute';
-	hudElements[0].style.overflow = 'hidden';
-	hudElements[0].style.zIndex = 1;
-	domElement.appendChild( hudElements[0] );
-
-	hudElements[1] = document.createElement( 'div' );
-	hudElements[1].style.display = 'none'; // start hidden
-	hudElements[1].style.position = 'absolute';
-	hudElements[1].style.overflow = 'hidden';
-	hudElements[1].style.zIndex = 1;
-	domElement.appendChild( hudElements[1] );
+	domElement.style.pointerEvents = 'none';
 
 	//
 	
@@ -119,7 +108,6 @@ THREE.CSS3DStereoRenderer = function () {
 	domElement.appendChild( domElements[1] );
  
 	cameraElements[1] = document.createElement( 'div' );
-
 	cameraElements[1].style.WebkitTransformStyle = 'preserve-3d';
 	cameraElements[1].style.MozTransformStyle = 'preserve-3d';
 	cameraElements[1].style.oTransformStyle = 'preserve-3d';
@@ -137,11 +125,7 @@ THREE.CSS3DStereoRenderer = function () {
 		domElements[side].style.left = x + 'px';
 		domElements[side].style.width = width + 'px';
 		domElements[side].style.height = height + 'px';
-		hudElements[side].style.display = 'inline-block';
-		hudElements[side].style.top = y + 'px';
-		hudElements[side].style.left = x + 'px';
-		hudElements[side].style.width = width + 'px';
-		hudElements[side].style.height = height + 'px';
+
 		cameraElements[side].style.width = width + 'px';
 		cameraElements[side].style.height = height + 'px';
 		
@@ -164,19 +148,10 @@ THREE.CSS3DStereoRenderer = function () {
 
 		_width = width / 2;
 		_height = height;
-		
-		// default viewports for left and right eyes.
-		hudElements[0].style.display = 'none';
-		hudElements[0].style.top = 0 + 'px';
-		hudElements[0].style.left = 0 + 'px';
-		hudElements[0].style.width = _width + 'px';
-		hudElements[0].style.height = _height + 'px';
 
-		hudElements[1].style.display = 'none';
-		hudElements[1].style.top = 0 + 'px';
-		hudElements[1].style.left = _width + 'px';
-		hudElements[1].style.width = _width + 'px';
-		hudElements[1].style.height = _height + 'px';
+		/*
+		 * do not reset the subviews.  
+		 */ 		
 
 		// hide them after setSize
 		domElements[0].style.display = 'none';
@@ -196,11 +171,12 @@ THREE.CSS3DStereoRenderer = function () {
 
 		cameraElements[1].style.width = _width + 'px';
 		cameraElements[1].style.height = _height + 'px';
+		/* */
 	};
 
 	var epsilon = function ( value ) {
 		return toFixed(value, 6);
-//		return Math.abs( value ) < 0.000000001 ? 0 : value;
+		//return toFixed(Math.abs( value ) < 0.00001 ? 0 : value, 6);
 	};
 
 	// make floating point output a little less ugly
@@ -315,30 +291,43 @@ THREE.CSS3DStereoRenderer = function () {
 
 		if ( camera.parent === null ) camera.updateMatrixWorld();
 
-		var fov = 0.5 / Math.tan( THREE.Math.degToRad( camera.fov * 0.5 ) ) * _viewHeight[side];
+		var fov = toFixed(
+			0.5 / Math.tan( THREE.Math.degToRad( camera.fov * 0.5 ) ) * _viewHeight[side],
+			2);
+		this.fovStyle = fov;
 
-		hudElements[side].style.display = 'inline-block';
+		if (cache.camera.fov[side] !== fov ) {
+			domElements[side].style.WebkitPerspective = fov + "px";
+			domElements[side].style.MozPerspective = fov + "px";
+			domElements[side].style.oPerspective = fov + "px";
+			domElements[side].style.perspective = fov + "px";
 
-		domElements[side].style.display = 'inline-block'; // was 'inline-block';
-		domElements[side].style.WebkitPerspective = fov + "px";
-		domElements[side].style.MozPerspective = fov + "px";
-		domElements[side].style.oPerspective = fov + "px";
-		domElements[side].style.perspective = toFixed(fov,4) + "px";
+			cache.camera.fov[side] = fov;
+		}
+
+		domElements[side].style.display = 'inline-block'; 
 
 		camera.matrixWorldInverse.getInverse( camera.matrixWorld );
 
-		var style = "translate3d(0,0," + toFixed(fov,4) + "px)" + getCameraCSSMatrix( camera.matrixWorldInverse ) +
+		var style = "translate3d(0,0," + fov + "px)" + getCameraCSSMatrix( camera.matrixWorldInverse ) +
 			" translate3d(" + toFixed(_viewWidth[side]/2,4) + "px," + toFixed(_viewHeight[side]/2,4) + "px, 0)";
 
-		cameraElements[side].style.WebkitTransform = style;
-		cameraElements[side].style.MozTransform = style;
-		cameraElements[side].style.oTransform = style;
-		cameraElements[side].style.transform = style;
+		if (cache.camera.style[side] !== style ) {
+			cameraElements[side].style.WebkitTransform = style;
+			cameraElements[side].style.MozTransform = style;
+			cameraElements[side].style.oTransform = style;
+			cameraElements[side].style.transform = style;
+
+			cache.camera.style[side] = style;
+		}
+
         renderObject( scene, camera, cameraElements[side], side);
 	};
 	
-
-    // code to compute the FOV we need to render the CSS properly
+    // code to compute the FOV we need to render the CSS properly 
+	// from an arbitrary projection matrix, needed if the camera
+	// projectionMatrix has been set directly instead of being
+	// computed from it's parameters.
     //
 	var oldProjection = new THREE.Matrix4();
 	var oldFOV = 0;
