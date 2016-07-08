@@ -1,6 +1,6 @@
+/// <reference path="typings/index.d.ts"/>
 import loader = require('./loader');
 
-declare const THREE: any;
 declare const Argon: any;
 declare const satellite: any;
 
@@ -59,7 +59,9 @@ cssRenderer.hudElements[1].appendChild(menu2);
 //
 // Let's set up the Satellite tracking and rendering 
 //
- 
+// a place to store the TLEs we read in
+var TLEs = null;
+
 // a place to store the TLE for the ISS when it's been fetched.
 // The TLE describes the trajectory of the ISS around the earth
 var tleISS = null;
@@ -70,6 +72,7 @@ let satrec = null;
 // run when the TLE file has been download.  We are mirroring the 
 // 100 most visible satelitte's TLE file from celestrak.org on our server 
 function onLoad (tle) {
+    TLEs = tle;
     tleISS = tle["ISS (ZARYA)"];
     satrec = satellite.twoline2satrec(tleISS[0], tleISS[1]);
     

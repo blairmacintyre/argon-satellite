@@ -1,0 +1,8 @@
+{
+  "globalDependencies": {
+    "dat-gui": "registry:dt/dat-gui#0.5.0+20160317120654",
+    "es6-collections": "registry:dt/es6-collections#0.5.1+20160316155526",
+    "three": "registry:dt/three#0.0.0+20160602140506",
+    "tween.js": "registry:dt/tween.js#0.0.0+20160608102153"
+  }
+}
