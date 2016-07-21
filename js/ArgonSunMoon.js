@@ -49,8 +49,13 @@ Argon.UpdateSunMoon = function() {
         entities.moon.position.setValue(translation, ReferenceFrame.FIXED);
         if (frame != ReferenceFrame.FIXED) {
             translation = entities.moon.position.getValueInReferenceFrame(date, frame);
-            entities.moon.position.setValue(translation, frame);
-            translation.clone(retVal.moon);
+            if (translation) {
+                entities.moon.position.setValue(translation, frame);
+                translation.clone(retVal.moon);
+            } else {
+                retVal.moon.x = retVal.moon.z = 0;
+                retVal.moon.y = -1;
+            }
         }
 
         translation = Simon1994PlanetaryPositions.computeSunPositionInEarthInertialFrame(date, retVal.sun);
@@ -58,8 +63,13 @@ Argon.UpdateSunMoon = function() {
         entities.sun.position.setValue(translation, ReferenceFrame.FIXED);
         if (frame != ReferenceFrame.FIXED) {
             translation = entities.sun.position.getValueInReferenceFrame(date, frame);
-            entities.sun.position.setValue(translation, frame);
-            translation.clone(retVal.sun);
+            if (translation) {
+                entities.sun.position.setValue(translation, frame);
+                translation.clone(retVal.sun);
+            } else {
+                retVal.sun.x = retVal.sun.z = 0;
+                retVal.sun.y = 1;
+            }
         }
 
         return retVal;
@@ -78,7 +88,9 @@ if (typeof(THREE) !== 'undefined') {
         // make the moon a dimmer, bluish light.  Not really correct, but a start
         var moonlight = new THREE.DirectionalLight(0x9999aa, 0.25);
         var sunlight = new THREE.DirectionalLight(0xffffff, 1.0);
-
+        this.moon = moonlight;
+        this.sun = sunlight;
+        
         // make the lights visible from outside
         lights = new THREE.Object3D();
         this.lights = lights;

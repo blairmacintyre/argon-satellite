@@ -3812,7 +3812,8 @@ $__System.register("13", ["8", "6", "b", "c", "7", "e", "10"], function(exports_
       context_2,
       utils_1,
       focus_1;
-  var argonContainerPromise,
+  var argonContainer,
+      argonContainerPromise,
       ViewService,
       PinchZoomService;
   return {
@@ -3852,6 +3853,7 @@ $__System.register("13", ["8", "6", "b", "c", "7", "e", "10"], function(exports_
             container.id = 'argon';
             container.classList.add('argon-view');
             document.body.appendChild(container);
+            argonContainer = container;
             resolve(container);
           };
           if (document.readyState == 'loading') {
@@ -3887,15 +3889,20 @@ $__System.register("13", ["8", "6", "b", "c", "7", "e", "10"], function(exports_
             element_1.style.height = '100%';
             element_1.classList.add('argon-view');
             this.containingElementPromise = new Promise(function(resolve) {
-              if (containerElement) {
+              if (containerElement && containerElement instanceof HTMLElement) {
                 containerElement.insertBefore(element_1, containerElement.firstChild);
                 resolve(containerElement);
               } else {
-                argonContainerPromise.then(function(argonContainer) {
-                  containerElement = argonContainer;
-                  containerElement.insertBefore(element_1, containerElement.firstChild);
-                  resolve(containerElement);
-                });
+                argonContainer = document.querySelector('#argon');
+                if (argonContainer) {
+                  argonContainer.insertBefore(element_1, argonContainer.firstChild);
+                  resolve(argonContainer);
+                } else {
+                  argonContainerPromise.then(function(argonContainer) {
+                    argonContainer.insertBefore(element_1, argonContainer.firstChild);
+                    resolve(argonContainer);
+                  });
+                }
                 _this.focusService.focusEvent.addEventListener(function() {
                   argonContainerPromise.then(function(argonContainer) {
                     argonContainer.classList.remove('argon-no-focus');
@@ -4005,6 +4012,7 @@ $__System.register("13", ["8", "6", "b", "c", "7", "e", "10"], function(exports_
           };
         };
         ViewService.prototype.update = function() {
+          var _this = this;
           var view = this.contextService.state.view;
           var viewportJSON = JSON.stringify(view.viewport);
           var previousViewport = this._current && this._current.viewport;
@@ -4012,11 +4020,13 @@ $__System.register("13", ["8", "6", "b", "c", "7", "e", "10"], function(exports_
           if (!this._currentViewportJSON || this._currentViewportJSON !== viewportJSON) {
             this._currentViewportJSON = viewportJSON;
             if (this.element) {
-              var viewport = view.viewport;
-              this.element.style.left = viewport.x + 'px';
-              this.element.style.bottom = viewport.y + 'px';
-              this.element.style.width = (viewport.width / document.documentElement.clientWidth) * 100 + '%';
-              this.element.style.height = (viewport.height / document.documentElement.clientHeight) * 100 + '%';
+              requestAnimationFrame(function() {
+                var viewport = view.viewport;
+                _this.element.style.left = viewport.x + 'px';
+                _this.element.style.bottom = viewport.y + 'px';
+                _this.element.style.width = viewport.width + 'px';
+                _this.element.style.height = viewport.height + 'px';
+              });
             }
             this.viewportChangeEvent.raiseEvent({previous: previousViewport});
           }
@@ -5764,7 +5774,116 @@ define("3a", ["16", "17", "18", "2e", "30", "29", "31"], function(defined, defin
 })();
 (function() {
 var define = $__System.amdDefine;
-define("3b", ["1b"], function(freezeObject) {
+define("3b", ["16", "17", "18", "3c"], function(defined, defineProperties, DeveloperError, PerspectiveOffCenterFrustum) {
+  'use strict';
+  function PerspectiveFrustum() {
+    this._offCenterFrustum = new PerspectiveOffCenterFrustum();
+    this.fov = undefined;
+    this._fov = undefined;
+    this._fovy = undefined;
+    this._sseDenominator = undefined;
+    this.aspectRatio = undefined;
+    this._aspectRatio = undefined;
+    this.near = 1.0;
+    this._near = this.near;
+    this.far = 500000000.0;
+    this._far = this.far;
+    this.xOffset = 0.0;
+    this._xOffset = this.xOffset;
+    this.yOffset = 0.0;
+    this._yOffset = this.yOffset;
+  }
+  function update(frustum) {
+    if (!defined(frustum.fov) || !defined(frustum.aspectRatio) || !defined(frustum.near) || !defined(frustum.far)) {
+      throw new DeveloperError('fov, aspectRatio, near, or far parameters are not set.');
+    }
+    var f = frustum._offCenterFrustum;
+    if (frustum.fov !== frustum._fov || frustum.aspectRatio !== frustum._aspectRatio || frustum.near !== frustum._near || frustum.far !== frustum._far || frustum.xOffset !== frustum._xOffset || frustum.yOffset !== frustum._yOffset) {
+      if (frustum.fov < 0 || frustum.fov >= Math.PI) {
+        throw new DeveloperError('fov must be in the range [0, PI).');
+      }
+      if (frustum.aspectRatio < 0) {
+        throw new DeveloperError('aspectRatio must be positive.');
+      }
+      if (frustum.near < 0 || frustum.near > frustum.far) {
+        throw new DeveloperError('near must be greater than zero and less than far.');
+      }
+      frustum._aspectRatio = frustum.aspectRatio;
+      frustum._fov = frustum.fov;
+      frustum._fovy = (frustum.aspectRatio <= 1) ? frustum.fov : Math.atan(Math.tan(frustum.fov * 0.5) / frustum.aspectRatio) * 2.0;
+      frustum._near = frustum.near;
+      frustum._far = frustum.far;
+      frustum._sseDenominator = 2.0 * Math.tan(0.5 * frustum._fovy);
+      frustum._xOffset = frustum.xOffset;
+      frustum._yOffset = frustum.yOffset;
+      f.top = frustum.near * Math.tan(0.5 * frustum._fovy);
+      f.bottom = -f.top;
+      f.right = frustum.aspectRatio * f.top;
+      f.left = -f.right;
+      f.near = frustum.near;
+      f.far = frustum.far;
+      f.right += frustum.xOffset;
+      f.left += frustum.xOffset;
+      f.top += frustum.yOffset;
+      f.bottom += frustum.yOffset;
+    }
+  }
+  defineProperties(PerspectiveFrustum.prototype, {
+    projectionMatrix: {get: function() {
+        update(this);
+        return this._offCenterFrustum.projectionMatrix;
+      }},
+    infiniteProjectionMatrix: {get: function() {
+        update(this);
+        return this._offCenterFrustum.infiniteProjectionMatrix;
+      }},
+    fovy: {get: function() {
+        update(this);
+        return this._fovy;
+      }},
+    sseDenominator: {get: function() {
+        update(this);
+        return this._sseDenominator;
+      }}
+  });
+  PerspectiveFrustum.prototype.computeCullingVolume = function(position, direction, up) {
+    update(this);
+    return this._offCenterFrustum.computeCullingVolume(position, direction, up);
+  };
+  PerspectiveFrustum.prototype.getPixelDimensions = function(drawingBufferWidth, drawingBufferHeight, distance, result) {
+    update(this);
+    return this._offCenterFrustum.getPixelDimensions(drawingBufferWidth, drawingBufferHeight, distance, result);
+  };
+  PerspectiveFrustum.prototype.clone = function(result) {
+    if (!defined(result)) {
+      result = new PerspectiveFrustum();
+    }
+    result.aspectRatio = this.aspectRatio;
+    result.fov = this.fov;
+    result.near = this.near;
+    result.far = this.far;
+    result._aspectRatio = undefined;
+    result._fov = undefined;
+    result._near = undefined;
+    result._far = undefined;
+    this._offCenterFrustum.clone(result._offCenterFrustum);
+    return result;
+  };
+  PerspectiveFrustum.prototype.equals = function(other) {
+    if (!defined(other)) {
+      return false;
+    }
+    update(this);
+    update(other);
+    return (this.fov === other.fov && this.aspectRatio === other.aspectRatio && this.near === other.near && this.far === other.far && this._offCenterFrustum.equals(other._offCenterFrustum));
+  };
+  return PerspectiveFrustum;
+});
+
+})();
+(function() {
+var define = $__System.amdDefine;
+define("3d", ["1b"], function(freezeObject) {
   'use strict';
   var Intersect = {
     OUTSIDE: -1,
@@ -5777,7 +5896,7 @@ define("3b", ["1b"], function(freezeObject) {
 })();
 (function() {
 var define = $__System.amdDefine;
-define("3c", ["28", "3d", "1f", "16", "18", "3b", "3e"], function(Cartesian3, Cartesian4, defaultValue, defined, DeveloperError, Intersect, Plane) {
+define("3e", ["28", "3f", "1f", "16", "18", "3d", "40"], function(Cartesian3, Cartesian4, defaultValue, defined, DeveloperError, Intersect, Plane) {
   'use strict';
   function CullingVolume(planes) {
     this.planes = defaultValue(planes, []);
@@ -5881,7 +6000,7 @@ define("3c", ["28", "3d", "1f", "16", "18", "3b", "3e"], function(Cartesian3, Ca
 })();
 (function() {
 var define = $__System.amdDefine;
-define("3f", ["40", "28", "3d", "1f", "16", "17", "18", "2f", "3c"], function(Cartesian2, Cartesian3, Cartesian4, defaultValue, defined, defineProperties, DeveloperError, Matrix4, CullingVolume) {
+define("3c", ["41", "28", "3f", "1f", "16", "17", "18", "2f", "3e"], function(Cartesian2, Cartesian3, Cartesian4, defaultValue, defined, defineProperties, DeveloperError, Matrix4, CullingVolume) {
   'use strict';
   function PerspectiveOffCenterFrustum() {
     this.left = undefined;
@@ -6082,115 +6201,6 @@ define("3f", ["40", "28", "3d", "1f", "16", "17", "18", "2f", "3c"], function(Ca
     return (defined(other) && this.right === other.right && this.left === other.left && this.top === other.top && this.bottom === other.bottom && this.near === other.near && this.far === other.far);
   };
   return PerspectiveOffCenterFrustum;
-});
-
-})();
-(function() {
-var define = $__System.amdDefine;
-define("41", ["16", "17", "18", "3f"], function(defined, defineProperties, DeveloperError, PerspectiveOffCenterFrustum) {
-  'use strict';
-  function PerspectiveFrustum() {
-    this._offCenterFrustum = new PerspectiveOffCenterFrustum();
-    this.fov = undefined;
-    this._fov = undefined;
-    this._fovy = undefined;
-    this._sseDenominator = undefined;
-    this.aspectRatio = undefined;
-    this._aspectRatio = undefined;
-    this.near = 1.0;
-    this._near = this.near;
-    this.far = 500000000.0;
-    this._far = this.far;
-    this.xOffset = 0.0;
-    this._xOffset = this.xOffset;
-    this.yOffset = 0.0;
-    this._yOffset = this.yOffset;
-  }
-  function update(frustum) {
-    if (!defined(frustum.fov) || !defined(frustum.aspectRatio) || !defined(frustum.near) || !defined(frustum.far)) {
-      throw new DeveloperError('fov, aspectRatio, near, or far parameters are not set.');
-    }
-    var f = frustum._offCenterFrustum;
-    if (frustum.fov !== frustum._fov || frustum.aspectRatio !== frustum._aspectRatio || frustum.near !== frustum._near || frustum.far !== frustum._far || frustum.xOffset !== frustum._xOffset || frustum.yOffset !== frustum._yOffset) {
-      if (frustum.fov < 0 || frustum.fov >= Math.PI) {
-        throw new DeveloperError('fov must be in the range [0, PI).');
-      }
-      if (frustum.aspectRatio < 0) {
-        throw new DeveloperError('aspectRatio must be positive.');
-      }
-      if (frustum.near < 0 || frustum.near > frustum.far) {
-        throw new DeveloperError('near must be greater than zero and less than far.');
-      }
-      frustum._aspectRatio = frustum.aspectRatio;
-      frustum._fov = frustum.fov;
-      frustum._fovy = (frustum.aspectRatio <= 1) ? frustum.fov : Math.atan(Math.tan(frustum.fov * 0.5) / frustum.aspectRatio) * 2.0;
-      frustum._near = frustum.near;
-      frustum._far = frustum.far;
-      frustum._sseDenominator = 2.0 * Math.tan(0.5 * frustum._fovy);
-      frustum._xOffset = frustum.xOffset;
-      frustum._yOffset = frustum.yOffset;
-      f.top = frustum.near * Math.tan(0.5 * frustum._fovy);
-      f.bottom = -f.top;
-      f.right = frustum.aspectRatio * f.top;
-      f.left = -f.right;
-      f.near = frustum.near;
-      f.far = frustum.far;
-      f.right += frustum.xOffset;
-      f.left += frustum.xOffset;
-      f.top += frustum.yOffset;
-      f.bottom += frustum.yOffset;
-    }
-  }
-  defineProperties(PerspectiveFrustum.prototype, {
-    projectionMatrix: {get: function() {
-        update(this);
-        return this._offCenterFrustum.projectionMatrix;
-      }},
-    infiniteProjectionMatrix: {get: function() {
-        update(this);
-        return this._offCenterFrustum.infiniteProjectionMatrix;
-      }},
-    fovy: {get: function() {
-        update(this);
-        return this._fovy;
-      }},
-    sseDenominator: {get: function() {
-        update(this);
-        return this._sseDenominator;
-      }}
-  });
-  PerspectiveFrustum.prototype.computeCullingVolume = function(position, direction, up) {
-    update(this);
-    return this._offCenterFrustum.computeCullingVolume(position, direction, up);
-  };
-  PerspectiveFrustum.prototype.getPixelDimensions = function(drawingBufferWidth, drawingBufferHeight, distance, result) {
-    update(this);
-    return this._offCenterFrustum.getPixelDimensions(drawingBufferWidth, drawingBufferHeight, distance, result);
-  };
-  PerspectiveFrustum.prototype.clone = function(result) {
-    if (!defined(result)) {
-      result = new PerspectiveFrustum();
-    }
-    result.aspectRatio = this.aspectRatio;
-    result.fov = this.fov;
-    result.near = this.near;
-    result.far = this.far;
-    result._aspectRatio = undefined;
-    result._fov = undefined;
-    result._near = undefined;
-    result._far = undefined;
-    this._offCenterFrustum.clone(result._offCenterFrustum);
-    return result;
-  };
-  PerspectiveFrustum.prototype.equals = function(other) {
-    if (!defined(other)) {
-      return false;
-    }
-    update(this);
-    update(other);
-    return (this.fov === other.fov && this.aspectRatio === other.aspectRatio && this.near === other.near && this.far === other.far && this._offCenterFrustum.equals(other._offCenterFrustum));
-  };
-  return PerspectiveFrustum;
 });
 
 })();
@@ -7518,7 +7528,7 @@ define("45", ["48", "1f", "16", "17", "18", "19", "46", "20", "47"], function(bi
 })();
 (function() {
 var define = $__System.amdDefine;
-define("40", ["1f", "16", "18", "1b", "23"], function(defaultValue, defined, DeveloperError, freezeObject, CesiumMath) {
+define("41", ["1f", "16", "18", "1b", "23"], function(defaultValue, defined, DeveloperError, freezeObject, CesiumMath) {
   'use strict';
   function Cartesian2(x, y) {
     this.x = defaultValue(x, 0.0);
@@ -10014,7 +10024,7 @@ define("30", ["28", "1f", "16", "18", "5c", "1b", "23", "2e"], function(Cartesia
 })();
 (function() {
 var define = $__System.amdDefine;
-define("31", ["4a", "40", "28", "3d", "37", "1f", "16", "18", "49", "4b", "38", "59", "5a", "20", "23", "2e", "2f", "30", "4e"], function(when, Cartesian2, Cartesian3, Cartesian4, Cartographic, defaultValue, defined, DeveloperError, EarthOrientationParameters, EarthOrientationParametersSample, Ellipsoid, Iau2006XysData, Iau2006XysSample, JulianDate, CesiumMath, Matrix3, Matrix4, Quaternion, TimeConstants) {
+define("31", ["4a", "41", "28", "3f", "37", "1f", "16", "18", "49", "4b", "38", "59", "5a", "20", "23", "2e", "2f", "30", "4e"], function(when, Cartesian2, Cartesian3, Cartesian4, Cartographic, defaultValue, defined, DeveloperError, EarthOrientationParameters, EarthOrientationParametersSample, Ellipsoid, Iau2006XysData, Iau2006XysSample, JulianDate, CesiumMath, Matrix3, Matrix4, Quaternion, TimeConstants) {
   'use strict';
   var Transforms = {};
   var eastNorthUpToFixedFrameNormal = new Cartesian3();
@@ -13294,7 +13304,7 @@ define("68", ["16"], function(defined) {
 })();
 (function() {
 var define = $__System.amdDefine;
-define("3d", ["1f", "16", "18", "1b", "23"], function(defaultValue, defined, DeveloperError, freezeObject, CesiumMath) {
+define("3f", ["1f", "16", "18", "1b", "23"], function(defaultValue, defined, DeveloperError, freezeObject, CesiumMath) {
   'use strict';
   function Cartesian4(x, y, z, w) {
     this.x = defaultValue(x, 0.0);
@@ -14486,7 +14496,7 @@ define("34", ["16"], function(defined) {
 })();
 (function() {
 var define = $__System.amdDefine;
-define("2f", ["28", "3d", "1f", "16", "17", "18", "1b", "23", "2e", "34"], function(Cartesian3, Cartesian4, defaultValue, defined, defineProperties, DeveloperError, freezeObject, CesiumMath, Matrix3, RuntimeError) {
+define("2f", ["28", "3f", "1f", "16", "17", "18", "1b", "23", "2e", "34"], function(Cartesian3, Cartesian4, defaultValue, defined, defineProperties, DeveloperError, freezeObject, CesiumMath, Matrix3, RuntimeError) {
   'use strict';
   function Matrix4(column0Row0, column1Row0, column2Row0, column3Row0, column0Row1, column1Row1, column2Row1, column3Row1, column0Row2, column1Row2, column2Row2, column3Row2, column0Row3, column1Row3, column2Row3, column3Row3) {
     this[0] = defaultValue(column0Row0, 0.0);
@@ -16857,7 +16867,7 @@ define("1b", ["16"], function(defined) {
 })();
 (function() {
 var define = $__System.amdDefine;
-define("3e", ["28", "16", "18", "1b"], function(Cartesian3, defined, DeveloperError, freezeObject) {
+define("40", ["28", "16", "18", "1b"], function(Cartesian3, defined, DeveloperError, freezeObject) {
   'use strict';
   function Plane(normal, distance) {
     if (!defined(normal)) {
@@ -16917,7 +16927,7 @@ define("3e", ["28", "16", "18", "1b"], function(Cartesian3, defined, DeveloperEr
 })();
 (function() {
 var define = $__System.amdDefine;
-define("6a", ["28", "37", "1f", "16", "18", "38", "62", "67", "68", "23", "2f", "3e"], function(Cartesian3, Cartographic, defaultValue, defined, DeveloperError, Ellipsoid, EllipsoidGeodesic, IntersectionTests, isArray, CesiumMath, Matrix4, Plane) {
+define("6a", ["28", "37", "1f", "16", "18", "38", "62", "67", "68", "23", "2f", "40"], function(Cartesian3, Cartographic, defaultValue, defined, DeveloperError, Ellipsoid, EllipsoidGeodesic, IntersectionTests, isArray, CesiumMath, Matrix4, Plane) {
   'use strict';
   var PolylinePipeline = {};
   PolylinePipeline.numberOfPoints = function(p0, p1, minDistance) {
@@ -17163,7 +17173,7 @@ $__System.register("6b", ["6"], function(exports_1, context_1) {
   };
 });
 
-$__System.register("6", ["48", "15", "40", "28", "3d", "1d", "1e", "21", "27", "2b", "22", "1f", "16", "18", "38", "24", "25", "19", "46", "36", "39", "20", "23", "2e", "2f", "3a", "41", "2a", "32", "30", "42", "29", "43", "44", "45", "31", "60", "6a", "6b"], function(exports_1, context_1) {
+$__System.register("6", ["48", "15", "41", "28", "3f", "1d", "1e", "21", "27", "2b", "22", "1f", "16", "18", "38", "24", "25", "19", "46", "36", "39", "20", "23", "2e", "2f", "3a", "3b", "3c", "2a", "32", "30", "42", "29", "43", "44", "45", "31", "60", "6a", "6b"], function(exports_1, context_1) {
   "use strict";
   var __moduleName = context_1 && context_1.id;
   return {
@@ -17221,6 +17231,8 @@ $__System.register("6", ["48", "15", "40", "28", "3d", "1d", "1e", "21", "27", "
       exports_1({"OrientationProperty": OrientationProperty_1_1["default"]});
     }, function(PerspectiveFrustum_1_1) {
       exports_1({"PerspectiveFrustum": PerspectiveFrustum_1_1["default"]});
+    }, function(PerspectiveOffCenterFrustum_1_1) {
+      exports_1({"PerspectiveOffCenterFrustum": PerspectiveOffCenterFrustum_1_1["default"]});
     }, function(PositionProperty_1_1) {
       exports_1({"PositionProperty": PositionProperty_1_1["default"]});
     }, function(Property_1_1) {
@@ -17263,7 +17275,8 @@ $__System.register("e", ["19", "6"], function(exports_1, context_1) {
       urlParser,
       MessageChannelLike,
       SynchronousMessageChannel,
-      MessageChannelFactory;
+      MessageChannelFactory,
+      scratchPerspectiveOffCenterFrustum;
   function getAncestorReferenceFrames(frame) {
     var frames = [];
     var f = frame;
@@ -17337,6 +17350,50 @@ $__System.register("e", ["19", "6"], function(exports_1, context_1) {
     };
   }
   exports_1("parseURL", parseURL);
+  function decomposePerspectiveOffCenterProjectionMatrix(mat, result) {
+    var m11 = mat[cesium_imports_1.Matrix4.COLUMN0ROW0];
+    var m12 = mat[cesium_imports_1.Matrix4.COLUMN0ROW1];
+    var m22 = mat[cesium_imports_1.Matrix4.COLUMN1ROW1];
+    var m31 = mat[cesium_imports_1.Matrix4.COLUMN2ROW0];
+    var m32 = mat[cesium_imports_1.Matrix4.COLUMN2ROW1];
+    var m33 = mat[cesium_imports_1.Matrix4.COLUMN2ROW2];
+    var m43 = mat[cesium_imports_1.Matrix4.COLUMN3ROW2];
+    var near = result.near = m43 / (m33 - 1);
+    result.far = m43 / (m33 + 1);
+    result.bottom = near * (m32 - 1) / m22;
+    result.top = near * (m32 + 1) / m22;
+    result.left = near * (m31 - 1) / m11;
+    result.right = near * (m31 + 1) / m11;
+    return result;
+  }
+  exports_1("decomposePerspectiveOffCenterProjectionMatrix", decomposePerspectiveOffCenterProjectionMatrix);
+  function decomposePerspectiveProjectionMatrix(mat, result) {
+    var f = decomposePerspectiveOffCenterProjectionMatrix(mat, scratchPerspectiveOffCenterFrustum);
+    var xOffset = (f.left + f.right) / 2;
+    var yOffset = (f.top + f.bottom) / 2;
+    var near = f.near;
+    var far = f.far;
+    var left = f.left - xOffset;
+    var right = f.right - xOffset;
+    var top = f.top - yOffset;
+    var bottom = f.bottom - yOffset;
+    var aspectRatio = right / top;
+    var fovy = 2 * Math.atan(top / near);
+    var fov;
+    if (aspectRatio < 1) {
+      fov = fovy;
+    } else {
+      fov = Math.atan(Math.tan(fovy * 0.5) * aspectRatio) * 2.0;
+    }
+    result.near = near;
+    result.far = far;
+    result.fov = fov;
+    result.aspectRatio = aspectRatio;
+    result.xOffset = xOffset;
+    result.yOffset = yOffset;
+    return result;
+  }
+  exports_1("decomposePerspectiveProjectionMatrix", decomposePerspectiveProjectionMatrix);
   return {
     setters: [function(Event_1_1) {
       Event_1 = Event_1_1;
@@ -17560,6 +17617,7 @@ $__System.register("e", ["19", "6"], function(exports_1, context_1) {
         return MessageChannelFactory;
       }());
       exports_1("MessageChannelFactory", MessageChannelFactory);
+      scratchPerspectiveOffCenterFrustum = new cesium_imports_1.PerspectiveOffCenterFrustum;
     }
   };
 });

@@ -1,8 +1,8 @@
 /// <reference path="typings/index.d.ts"/>
 import loader = require('./loader');
+import argonSat = require('./argon-satellite');
 
 declare const Argon: any;
-declare const satellite: any;
 
 // grab some handles on APIs we use
 const Cesium = Argon.Cesium;
@@ -34,10 +34,14 @@ scene.add(user);
 scene.add(userLocation);
 
 // our two renders (WebGL and CSS)
-const cssRenderer = new THREE.CSS3DArgonRenderer();
+const cssRenderer = new (<any>THREE).CSS3DArgonRenderer();
+const hud = new (<any>THREE).CSS3DArgonHUD();
 const webglRenderer = new THREE.WebGLRenderer({ alpha: true, logarithmicDepthBuffer: true });
+webglRenderer.setPixelRatio(window.devicePixelRatio);
+
 app.view.element.appendChild(webglRenderer.domElement);
 app.view.element.appendChild(cssRenderer.domElement);
+app.view.element.appendChild(hud.domElement);
 
 // We put some elements in the index.html, for convenience. 
 // So let's duplicate and move the information box to the hudElements 
@@ -53,60 +57,10 @@ let elem2 = menuchild.item(0) as HTMLElement;
 
 menu.remove();
 menu2.remove();
-cssRenderer.hudElements[0].appendChild(menu);
-cssRenderer.hudElements[1].appendChild(menu2);
+hud.hudElements[0].appendChild(menu);
+hud.hudElements[1].appendChild(menu2);
 
-//
-// Let's set up the Satellite tracking and rendering 
-//
-// a place to store the TLEs we read in
-var TLEs = null;
-
-// a place to store the TLE for the ISS when it's been fetched.
-// The TLE describes the trajectory of the ISS around the earth
-var tleISS = null;
-
-// the actual satellite object for the ISS, initialized from the TLE
-let satrec = null;
-
-// run when the TLE file has been download.  We are mirroring the 
-// 100 most visible satelitte's TLE file from celestrak.org on our server 
-function onLoad (tle) {
-    TLEs = tle;
-    tleISS = tle["ISS (ZARYA)"];
-    satrec = satellite.twoline2satrec(tleISS[0], tleISS[1]);
-    
-    // update the satellite positions a couple of times so
-    // we have enough data in the issECEF entity position property
-    // to interpolate
-    let date = Argon.Cesium.JulianDate.now();
-    updateSat(date);
-    Argon.Cesium.JulianDate.addSeconds(date, 1, date);
-    updateSat(date);
-    
-    // set up the orbit geometry and line object
-    initOrbit(date);
-   
-    const material = new THREE.LineBasicMaterial({
-	    color: 0x0000ff
-    });
-    const line = new THREE.Line( orbitXYZ, material );    
-    scene.add(line);
-}
-
-function onProgress (progress: ProgressEvent) {
-    console.log("loading: " + progress.loaded + " of " + progress.total + "...");
-}
-
-function onError (error: ErrorEvent) {
-    console.log("error! " + error);
-}
-
-// from http://celestrak.com/NORAD/elements/visual.txt
-loader.loadTLEs("includes/visual.txt", onLoad, onProgress, onError);
-
-//
-// now that the ISS object is set up, let's render it in the sky.  We'll use
+// get the ISS object set up, so we can render it in the sky.  We'll use
 // the satellite library to convert all the way into ECEF coordinates, and 
 // then move into Cesium.  We could probably use Cesium's INERTIAL to FIXED 
 // conversion instead, but this seems simplest.
@@ -123,6 +77,44 @@ let issECEF = new Cesium.Entity({
 const issPosition = new Cesium.SampledPositionProperty(ReferenceFrame.FIXED, 1);
 issPosition.forwardExtrapolationType = Cesium.ExtrapolationType.EXTRAPOLATE;
 issECEF.position = issPosition;
+
+// a place to store the TLE for the ISS when it's been fetched.
+// The TLE describes the trajectory of the ISS around the earth
+var tleISS = null;
+
+// the actual satellite object for the ISS, initialized from the TLE
+let satrec = null;
+
+// run when the TLE file has been download.  We are mirroring the 
+// 100 most visible satelitte's TLE file from celestrak.org on our server 
+function initISS () {
+    if (satrec)
+        return false;
+        
+    satrec = argonSat.getSatrec("ISS (ZARYA)")
+
+    if (!satrec)
+        return false;
+
+    // update the satellite positions a couple of times so
+    // we have enough data in the issECEF entity position property
+    // to interpolate
+    let date = Argon.Cesium.JulianDate.now();
+    argonSat.updateSat(date, satrec, issECEF);
+    Argon.Cesium.JulianDate.addSeconds(date, 1, date);
+    argonSat.updateSat(date, satrec, issECEF);
+    
+    // set up the orbit geometry and line object
+    initOrbit(date);
+   
+    const material = new THREE.LineBasicMaterial({
+	    color: 0x0000ff
+    });
+    const line = new THREE.Line( orbitXYZ, material );    
+    scene.add(line);
+
+    return true;
+}
 
 // ISS object
 const issObject = new THREE.Object3D;
@@ -175,7 +167,7 @@ function initOrbit (julian) {
     var localPos;
     const frame = app.context.getDefaultReferenceFrame();
     for (var i = 0; i < 30; i++) {
-        positionEcf = computeSatPos(julian);
+        positionEcf = argonSat.computeSatPos(julian, satrec);
         position = new ConstantPositionProperty(
             Cartesian3.fromElements(positionEcf.x, positionEcf.y, positionEcf.z));
         orbitECF.push(position);
@@ -198,7 +190,8 @@ function updateOrbit (julian) {
     orbitXYZ.vertices.shift();
     
     const frame = app.context.getDefaultReferenceFrame();
-    const positionEcf = computeSatPos(julian);
+    const positionEcf = argonSat.computeSatPos(julian, satrec);
+
     const position = new ConstantPositionProperty(
             Cartesian3.fromElements(positionEcf.x, positionEcf.y, positionEcf.z));
     orbitECF.push(position);
@@ -207,117 +200,6 @@ function updateOrbit (julian) {
     orbitXYZ.vertices.push(vec3);   
     orbitXYZ.verticesNeedUpdate = true;
 }
-
-//
-// compute the satellite position
-//
-function computeSatPos (julian) {            
-    //  Or you can use a calendar date and time (obtained from Javascript Date).
-    const now = JulianDate.toDate(julian);
-
-    // NOTE: while Javascript Date returns months in range 0-11, 
-    // all satellite.js methods require months in range 1-12.
-    const positionAndVelocity = satellite.propagate(
-        satrec,
-        now.getUTCFullYear(),
-        now.getUTCMonth() + 1, // Note, this function requires months in range 1-12.
-        now.getUTCDate(),
-        now.getUTCHours(),
-        now.getUTCMinutes(),
-        now.getUTCSeconds()
-    );
-
-    // The position_velocity result is a key-value pair of ECI coordinates.
-    // These are the base results from which all other coordinates are derived.
-    let positionEci = positionAndVelocity.position;
-    let velocityEci = positionAndVelocity.velocity;
-
-    // You will need GMST for some of the coordinate transforms.
-    // http://en.wikipedia.org/wiki/Sidereal_time#Definition
-    // NOTE: GMST, though a measure of time, is defined as an angle in radians.
-    // Also, be aware that the month range is 1-12, not 0-11.
-    var gmst = satellite.gstimeFromDate(
-        now.getUTCFullYear(),
-        now.getUTCMonth() + 1, // Note, this function requires months in range 1-12.
-        now.getUTCDate(),
-        now.getUTCHours(),
-        now.getUTCMinutes(),
-        now.getUTCSeconds()
-    );
-
-    // You can get ECF, Geodetic, Look Angles, and Doppler Factor.
-    const positionEcf   = satellite.eciToEcf(positionEci, gmst);
-
-    // The coordinates are all stored in key-value pairs.
-    // ECI and ECF are accessed by `x`, `y`, `z` properties.
-    // They are in kilometers, so we need to convert to meters for Cesium
-    positionEcf.x *= 1000.0;
-    positionEcf.y *= 1000.0;
-    positionEcf.z *= 1000.0;
-    
-    return positionEcf;
-}
-
-function updateSat (julian) {
-    if (!satrec)
-        return;  // do nothing if we don't have the satellite definitions yet
-
-    //  Or you can use a calendar date and time (obtained from Javascript Date).
-    const now = JulianDate.toDate(julian);
-
-    // NOTE: while Javascript Date returns months in range 0-11, 
-    // all satellite.js methods require months in range 1-12.
-    const positionAndVelocity = satellite.propagate(
-        satrec,
-        now.getUTCFullYear(),
-        now.getUTCMonth() + 1, // Note, this function requires months in range 1-12.
-        now.getUTCDate(),
-        now.getUTCHours(),
-        now.getUTCMinutes(),
-        now.getUTCSeconds()
-    );
-
-    // The position_velocity result is a key-value pair of ECI coordinates.
-    // These are the base results from which all other coordinates are derived.
-    let positionEci = positionAndVelocity.position;
-    let velocityEci = positionAndVelocity.velocity;
-
-    // You will need GMST for some of the coordinate transforms.
-    // http://en.wikipedia.org/wiki/Sidereal_time#Definition
-    // NOTE: GMST, though a measure of time, is defined as an angle in radians.
-    // Also, be aware that the month range is 1-12, not 0-11.
-    var gmst = satellite.gstimeFromDate(
-        now.getUTCFullYear(),
-        now.getUTCMonth() + 1, // Note, this function requires months in range 1-12.
-        now.getUTCDate(),
-        now.getUTCHours(),
-        now.getUTCMinutes(),
-        now.getUTCSeconds()
-    );
-
-    // You can get ECF, Geodetic, Look Angles, and Doppler Factor.
-    const positionEcf   = satellite.eciToEcf(positionEci, gmst);
-    const velocityEcf   = satellite.eciToEcf(velocityEci, gmst);
-    // const positionGd    = satellite.eciToGeodetic(positionEci, gmst);
-
-    // The coordinates are all stored in key-value pairs.
-    // ECI and ECF are accessed by `x`, `y`, `z` properties.
-    // They are in kilometers, so we need to convert to meters for Cesium
-    positionEcf.x *= 1000.0;
-    positionEcf.y *= 1000.0;
-    positionEcf.z *= 1000.0;
-    velocityEcf.x *= 1000.0;
-    velocityEcf.y *= 1000.0;
-    velocityEcf.z *= 1000.0;
-
-    // add a sample with the newly computed value
-    issECEF.position.addSample(JulianDate.fromDate(now),
-        new Cartesian3(positionEcf.x, positionEcf.y, positionEcf.z),
-        [new Cartesian3(velocityEcf.x, velocityEcf.y, velocityEcf.z)]);
-
-}
-// run it once so we have valid values in the globals
-//updateSat();
 
 // make floating point output a little less ugly
 function toFixed(value, precision) {
@@ -330,10 +212,9 @@ let lastMinute = -1;  // want it to always run once; (new Date()).getUTCSeconds(
 app.updateEvent.addEventListener((state) => {
     const time = app.context.getTime();
     const currMinute = (JulianDate.toDate(time)).getUTCMinutes();
-    if (currMinute !== lastMinute) {
-        lastMinute = currMinute;
-        updateSat(time);
-        //updateOrbit(time);
+
+    if (!satrec) {
+    } else {
     }
 
     // We can optionally provide a second argument to getCurrentEntityState
@@ -361,6 +242,12 @@ app.updateEvent.addEventListener((state) => {
     }
 
     if (satrec) {
+        if (currMinute !== lastMinute) {
+            lastMinute = currMinute;
+            argonSat.updateSat(time, satrec, issECEF);
+            //updateOrbit(time);
+        }
+
         let latitude = 0;
         let longitude = 0;
         let height = 0;
@@ -384,6 +271,11 @@ app.updateEvent.addEventListener((state) => {
         issHeightDiv.innerText = heightText;
         issHeightDiv2.innerText = heightText;
     } else {
+        // try to initialize it, for next time
+        if (initISS()) {
+            lastMinute = currMinute;
+        }
+
         let msg = "Waiting for TLE file to download";
         elem.innerText = msg;
         elem2.innerText = msg;
@@ -398,7 +290,8 @@ app.renderEvent.addEventListener(() => {
 
     webglRenderer.setSize(viewport.width, viewport.height);    
     cssRenderer.setSize(viewport.width, viewport.height);
-    var i = 0;
+    hud.setSize(viewport.width, viewport.height);
+
     for (let subview of app.view.getSubviews()) {
         const {x,y,width,height} = subview.viewport;
 
@@ -408,8 +301,8 @@ app.renderEvent.addEventListener(() => {
 
         var fov = camera.fov;
         cssRenderer.updateCameraFOVFromProjection(camera);
-        cssRenderer.setViewport(x,y,width,height, i);
-        cssRenderer.render(scene, camera, i);
+        cssRenderer.setViewport(x,y,width,height, subview.index);
+        cssRenderer.render(scene, camera, subview.index);
 
         if (camera.fov != fov) {
             console.log("viewport: " + viewport.width + "x" + viewport.height);
@@ -422,7 +315,9 @@ app.renderEvent.addEventListener(() => {
         webglRenderer.setScissorTest(true);
         webglRenderer.render(scene, camera);
 
-        i++;
+        // adjust the hud
+        hud.setViewport(x,y,width,height, subview.index);
+        hud.render(subview.index);
     }
     // want to force a layout of the DOM, so read something!
     var stupidtext = elem.innerHTML;
