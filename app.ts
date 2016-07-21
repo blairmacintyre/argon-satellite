@@ -213,10 +213,6 @@ app.updateEvent.addEventListener((state) => {
     const time = app.context.getTime();
     const currMinute = (JulianDate.toDate(time)).getUTCMinutes();
 
-    if (!satrec) {
-    } else {
-    }
-
     // We can optionally provide a second argument to getCurrentEntityState
     // with a desired reference frame. Otherwise, the implementation uses
     // the default origin as the reference frame. 
@@ -245,7 +241,7 @@ app.updateEvent.addEventListener((state) => {
         if (currMinute !== lastMinute) {
             lastMinute = currMinute;
             argonSat.updateSat(time, satrec, issECEF);
-            //updateOrbit(time);
+            updateOrbit(time);
         }
 
         let latitude = 0;
