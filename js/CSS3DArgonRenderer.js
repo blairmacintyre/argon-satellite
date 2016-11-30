@@ -54,7 +54,8 @@ THREE.CSS3DArgonRenderer = function () {
 	var _viewWidth = [];
 	var _viewHeight = [];
 
-	var matrix = new THREE.Matrix4();
+	var tempMatrix = new THREE.Matrix4();
+    var tempMatrix2 = new THREE.Matrix4();
 
 	var cache = {
 		camera: { fov: [], style: [] },
@@ -185,7 +186,14 @@ THREE.CSS3DArgonRenderer = function () {
     	return String(Math.round(value * power) / power);
 	}
 
-	var getCameraCSSMatrix = function ( matrix ) {
+	var getCameraCSSMatrix = function ( m ) {
+		var matrix = tempMatrix2;
+		matrix.copy(m);
+ 		matrix.multiplyScalar(100);
+		
+		// we don't want the lower corner to be scaled, just the rest
+		matrix.elements[15] = m.elements[15];
+
 		var elements = matrix.elements;
 
 		return 'matrix3d(' +
@@ -207,9 +215,15 @@ THREE.CSS3DArgonRenderer = function () {
 			epsilon( elements[ 15 ] ) +
 		')';
 
-	};
+	}; 
 
-	var getObjectCSSMatrix = function ( matrix ) {
+	var getObjectCSSMatrix = function ( m ) {
+		var matrix = tempMatrix2;
+		matrix.copy(m); 
+ 		matrix.multiplyScalar(100); 
+
+		// we don't want the lower corner to be scaled, just the rest
+		matrix.elements[15] = m.elements[15];
 
 		var elements = matrix.elements;
 
@@ -234,16 +248,24 @@ THREE.CSS3DArgonRenderer = function () {
 
 	};
 
-	var renderObject = function ( object, camera, cameraElement, side ) {
+	var renderObject = function ( object, camera, cameraElement, side, visible ) {
+		visible = (visible && object.visible);
 
 		if ( object instanceof THREE.CSS3DObject ) {
-
+			var element = object.elements[side];
+			
+			if (visible === false) {
+				element.style.display = "none";
+			} else {
+				element.style.display = "inline-block";				
+			}
+	
 			var style;
 
 			if ( object instanceof THREE.CSS3DSprite ) {
 
 				// http://swiftcoder.wordpress.com/2008/11/25/constructing-a-billboard-matrix/
-
+				var matrix = tempMatrix;
 				matrix.copy( camera.matrixWorldInverse );
 				matrix.transpose();
 				matrix.copyPosition( object.matrixWorld );
@@ -262,7 +284,6 @@ THREE.CSS3DArgonRenderer = function () {
 
 			}
 
-			var element = object.elements[side];
 
 			element.style.WebkitTransform = style;
 			element.style.MozTransform = style;
@@ -272,14 +293,17 @@ THREE.CSS3DArgonRenderer = function () {
 			if ( element.parentNode !== cameraElement ) {
 
 				cameraElement.appendChild( element );
-
+			
 			}
-
 		}
+
+		// we can't short circuit this, because we have to make sure we clear all the children of this 
+		// hidden node
+		// if (!object.visible) { return; }
 
 		for ( var i = 0, l = object.children.length; i < l; i ++ ) {
 
-			renderObject( object.children[ i ], camera, cameraElement, side );
+			renderObject( object.children[ i ], camera, cameraElement, side, visible );
 
 		}
 
@@ -321,7 +345,7 @@ THREE.CSS3DArgonRenderer = function () {
 			cache.camera.style[side] = style;
 		}
 
-        renderObject( scene, camera, cameraElements[side], side);
+        renderObject( scene, camera, cameraElements[side], side, scene.visible);
 	};
 	
     // code to compute the FOV we need to render the CSS properly 

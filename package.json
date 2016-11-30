@@ -1,0 +1,16 @@
+{
+  "devDependencies": {
+    "@types/dat-gui": "^0.5.28",
+    "@types/stats": "^0.16.29",
+    "@types/three": "0.0.19",
+    "@types/tween.js": "0.0.27",
+    "static-server": "^2.0.1",
+    "typescript": "^2.0.0"
+  },
+  "scripts": {
+    "serve": "static-server -p 1337"
+  },
+  "dependencies": {
+    "argon": "github:argonjs/argon#develop"
+  }
+}

@@ -1,13 +1,11 @@
 <html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
 <head>
-    <script src="http://profblair.local:1337/vorlon.js"></script>
-
     <title>Satellites</title>
     <script src="js/three.min.js"></script>
     <script src="js/CSS3DArgonRenderer.js"></script>
     <script src="js/CSS3DArgonHUD.js"></script>
-    <script src="js/argon.umd.js"></script>
+    <script src="js/argon.js"></script>
 	<script src="js/satellite.min.js"></script>
 	<link rel="stylesheet" type="text/css" href="includes/style.css">	
 </head>
@@ -16,8 +14,18 @@
  	  <div id="menu" class="menu">
   		<button class="location">lon (0) lat (0)</button>
     </div>
+      <div onclick="hideMe(this)" id="description">
+        <h2>ISS Tracker</h2>
+        <h5>(click to dismiss)</h5>
+        <p>This examples shows where the ISS is right now, as well as using a line to show the previous and next 15 minutes of it's path around the earth.</p>  
+      </div>
   </div>
   <button id="iss-height" class="location">ISS HEIGHT</button>
 </body>
+	<script>
+		function hideMe(elem) {
+		    elem.style.display = 'none';
+		}	
+	</script>
 <script data-main="build/app" type="text/javascript" src="js/require.js"></script>
 </html>

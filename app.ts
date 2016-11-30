@@ -1,4 +1,5 @@
-/// <reference path="typings/index.d.ts"/>
+/// <reference types="@argonjs/argon"/>
+/// <reference types="three"/>
 import loader = require('./loader');
 import argonSat = require('./argon-satellite');
 
@@ -132,10 +133,10 @@ scene.add(issObject);
 
 const satObj = new THREE.Object3D;
 const texloader = new THREE.TextureLoader()
-texloader.load( 'includes/ISS-2011.png', function ( texture ) {
+texloader.load( 'includes/circle-transparent-BG.png', function ( texture ) {
     const material = new THREE.SpriteMaterial( { map: texture, color: 0xffffff, fog: false } );
     const sprite = new THREE.Sprite( material );
-	sprite.scale.copy(new THREE.Vector3( 100, 100, 100 ));
+	sprite.scale.copy(new THREE.Vector3( 150, 150, 150 ));
     satObj.add( sprite );
 });
 issObject.add(satObj);
@@ -145,7 +146,7 @@ let issHeightDiv2 = issHeightDiv.cloneNode(true) as HTMLElement;
 const issObjectLabel = new THREE.CSS3DSprite([issHeightDiv, issHeightDiv2]);
 //const issObjectLabel = new THREE.CSS3DObject([issHeightDiv, issHeightDiv2]);
 issObjectLabel.scale.copy(new THREE.Vector3( 2, 2, 2 ));
-
+issObjectLabel.position.set(0,-150,0);
 issObject.add(issObjectLabel);
 
 //
@@ -185,6 +186,8 @@ function updateOrbit (julian) {
     if (orbitECF == undefined)
         return;
     
+    JulianDate.addMinutes(julian, 15, julian);
+ 
     // remove the oldest location
     orbitECF.shift();
     orbitXYZ.vertices.shift();
@@ -259,11 +262,11 @@ app.updateEvent.addEventListener((state) => {
             }
         }
 
-        let infoText = "ISS location: " + toFixed(longitude,6) +
-            ", " + toFixed(latitude,6);
+        let infoText = "ISS location: " + toFixed(longitude,2) +
+            ", " + toFixed(latitude,2);
         elem.innerText = infoText;
         elem2.innerText = infoText;
-        let heightText = "ISS Height: " + toFixed(height,6);
+        let heightText = "ISS Height: " + toFixed(height,0);
         issHeightDiv.innerText = heightText;
         issHeightDiv2.innerText = heightText;
     } else {
@@ -296,7 +299,7 @@ app.renderEvent.addEventListener(() => {
         camera.projectionMatrix.fromArray(subview.projectionMatrix);
 
         var fov = camera.fov;
-        cssRenderer.updateCameraFOVFromProjection(camera);
+        camera.fov = subview.frustum.fovy * 180 / Math.PI;
         cssRenderer.setViewport(x,y,width,height, subview.index);
         cssRenderer.render(scene, camera, subview.index);
 
@@ -402,9 +405,12 @@ cssObjectZpos.rotation.y = Math.PI
 cssObjectZneg.position.z = -200.0
 //no rotation need for this one
 
-userLocation.add(cssObjectXpos)
-userLocation.add(cssObjectXneg)
-userLocation.add(cssObjectYpos)
-userLocation.add(cssObjectYneg)
-userLocation.add(cssObjectZpos)
-userLocation.add(cssObjectZneg)
+
+// comment them out for now, just include when debugging
+
+//userLocation.add(cssObjectXpos)
+//userLocation.add(cssObjectXneg)
+//userLocation.add(cssObjectYpos)
+//userLocation.add(cssObjectYneg)
+//userLocation.add(cssObjectZpos)
+//userLocation.add(cssObjectZneg)
